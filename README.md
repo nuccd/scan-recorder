@@ -1,3 +1,11 @@
+# scan-recorder
+
+基于 quickie 的通用连续扫码记录 App：扫码后确认录入、重复行提示、条形码 / 二维码扫描框、本地批次、手动增删改、数量统计，以及不带序号的 TXT / logcat 导出。独立 App 位于 `recorder` 模块。
+
+使用与构建说明见 [扫码记录](docs/scan-recorder.md)。下面保留上游 quickie 的库文档。
+
+## quickie
+
 ![quickie logo](https://raw.githubusercontent.com/G00fY2/quickie/gh-pages/media/logo_dark.svg#gh-dark-mode-only)
 ![quickie logo](https://raw.githubusercontent.com/G00fY2/quickie/gh-pages/media/logo_light.svg#gh-light-mode-only)
 

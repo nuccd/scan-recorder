@@ -11,6 +11,7 @@ android {
   resourcePrefix = "quickie"
   defaultConfig {
     consumerProguardFiles("consumer-proguard-rules.pro")
+    testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
   buildFeatures {
     viewBinding = true
@@ -47,6 +48,7 @@ dependencies {
 
   testImplementation(libs.test.junit)
   testRuntimeOnly(libs.test.junit.platformLauncher)
+  androidTestImplementation(libs.androidx.testRunner)
 }
 
 group = "io.github.g00fy2.quickie"

@@ -1,0 +1,7 @@
+<resources>
+  <style name="Theme.ScanRecorder" parent="Theme.Material3.DayNight.NoActionBar">
+    <item name="colorPrimary">#146C54</item>
+    <item name="colorSecondary">#146C54</item>
+    <item name="android:windowLightStatusBar">true</item>
+  </style>
+</resources>

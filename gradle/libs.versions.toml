@@ -23,6 +23,7 @@ detekt = "2.0.0-alpha.3"
 dokka = "2.2.0"
 
 junit = "6.1.0"
+androidxTestRunner = "1.7.0"
 
 [libraries]
 androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
@@ -38,6 +39,7 @@ google-materialDesign = { module = "com.google.android.material:material", versi
 
 test-junit = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
 test-junit-platformLauncher = { module = "org.junit.platform:junit-platform-launcher" }
+androidx-testRunner = { module = "androidx.test:runner", version.ref = "androidxTestRunner" }
 
 detekt-ktlintWrapper = { module = "dev.detekt:detekt-rules-ktlint-wrapper", version.ref = "detekt" }
 

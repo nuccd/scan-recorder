@@ -12,10 +12,11 @@ internal class QRCodeAnalyzer(
   private val barcodeFormats: IntArray,
   private val onSuccess: ((Barcode) -> Unit),
   private val onFailure: ((Exception) -> Unit),
-  private val onPassCompleted: ((Boolean) -> Unit)
+  private val onPassCompleted: ((Boolean) -> Unit),
+  private val onFrame: ((List<Barcode>, ImageProxy) -> Unit)? = null
 ) : ImageAnalysis.Analyzer {
 
-  private val barcodeScanner by lazy {
+  private val barcodeScannerDelegate = lazy {
     val optionsBuilder = if (barcodeFormats.size > 1) {
       BarcodeScannerOptions.Builder().setBarcodeFormats(barcodeFormats.first(), *barcodeFormats.drop(1).toIntArray())
     } else {
@@ -29,32 +30,57 @@ internal class QRCodeAnalyzer(
     }
   }
 
+  private val barcodeScanner by barcodeScannerDelegate
+
   private var failureOccurred = false
   private var failureTimestamp = 0L
+
+  @Volatile private var closed = false
 
   @ExperimentalGetImage
   override fun analyze(imageProxy: ImageProxy) {
     val mediaImage = imageProxy.image
 
     // skip analysis if no media image or error occurred in previous pass
-    if (mediaImage == null || (failureOccurred && System.currentTimeMillis() - failureTimestamp < 1000L)) {
+    val coolingDown = failureOccurred && System.currentTimeMillis() - failureTimestamp < 1000L
+    if (closed || mediaImage == null || coolingDown) {
       imageProxy.close()
       return
     }
 
     failureOccurred = false
-    barcodeScanner?.let { scanner ->
+    val scanner = barcodeScanner
+    if (scanner == null || closed) {
+      scanner?.close()
+      imageProxy.close()
+      return
+    }
+    try {
       scanner.process(InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees))
-        .addOnSuccessListener { codes -> codes.firstNotNullOfOrNull { it }?.let { onSuccess(it) } }
+        .addOnSuccessListener { codes ->
+          onFrame?.invoke(codes, imageProxy)
+          if (onFrame == null) codes.firstOrNull()?.let(onSuccess)
+        }
         .addOnFailureListener {
           failureOccurred = true
           failureTimestamp = System.currentTimeMillis()
           onFailure(it)
         }
         .addOnCompleteListener {
-          onPassCompleted(failureOccurred)
-          imageProxy.close()
+          try {
+            onPassCompleted(failureOccurred)
+          } finally {
+            imageProxy.close()
+          }
         }
+    } catch (exception: Exception) {
+      imageProxy.close()
+      onFailure(exception)
     }
+  }
+
+  fun close() {
+    closed = true
+    if (barcodeScannerDelegate.isInitialized()) barcodeScanner?.close()
   }
 }

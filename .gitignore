@@ -19,6 +19,8 @@ out/
 # Gradle files
 .gradle
 .gradle/
+.gradle-user-home/
+.local-temp/
 build/
 gradle-app.setting
 .gradletasknamecache

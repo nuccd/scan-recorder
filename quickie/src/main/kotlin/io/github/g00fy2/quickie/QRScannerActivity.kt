@@ -38,6 +38,7 @@ internal class QRScannerActivity : AppCompatActivity() {
 
   private lateinit var binding: QuickieScannerActivityBinding
   private lateinit var analysisExecutor: ExecutorService
+  private var analyzer: QRCodeAnalyzer? = null
   private var barcodeFormats = intArrayOf(Barcode.FORMAT_QR_CODE)
   private var hapticFeedback = true
   private var showTorchToggle = false
@@ -87,6 +88,7 @@ internal class QRScannerActivity : AppCompatActivity() {
   override fun onDestroy() {
     super.onDestroy()
     analysisExecutor.shutdown()
+    analyzer?.close()
   }
 
   private fun startCamera() {
@@ -127,7 +129,7 @@ internal class QRScannerActivity : AppCompatActivity() {
               },
               onFailure = { exception -> onFailure(exception) },
               onPassCompleted = { failureOccurred -> onPassCompleted(failureOccurred) }
-            )
+            ).also { frameAnalyzer -> analyzer = frameAnalyzer }
           )
         }
 

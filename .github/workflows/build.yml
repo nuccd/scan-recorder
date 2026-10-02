@@ -25,6 +25,10 @@ jobs:
           - "UnbundledDebug"
         include:
           - task: "test"
+          - task: ":recorder:lint"
+            flavor: "BundledDebug"
+          - task: ":recorder:assemble"
+            flavor: "BundledDebug"
 
     steps:
       - name: "Checkout repository"

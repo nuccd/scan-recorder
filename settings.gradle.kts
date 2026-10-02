@@ -1,4 +1,4 @@
-include(":quickie", ":sample")
+include(":quickie", ":sample", ":recorder")
 
 dependencyResolutionManagement {
   @Suppress("UnstableApiUsage")
