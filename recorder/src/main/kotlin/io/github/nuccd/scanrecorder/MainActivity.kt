@@ -276,10 +276,28 @@ internal class MainActivity : AppCompatActivity() {
   private fun chooseBatch() {
     val current = snapshot ?: return
     pauseScanning()
-    val names = current.batches.map { it.name } + getString(R.string.new_batch)
+    val names = current.batches.map {
+      if (it.id == current.batch.id) getString(R.string.current_batch_label, it.name) else it.name
+    } + getString(R.string.new_batch)
     MaterialAlertDialogBuilder(this).setTitle(R.string.batches).setItems(names.toTypedArray()) { _, position ->
       if (position == current.batches.size) newBatch() else model.selectBatch(current.batches[position].id)
-    }.show()
+    }.setNeutralButton(R.string.delete_current_batch) { _, _ -> deleteBatch(current) }.show()
+  }
+
+  private fun deleteBatch(current: RecorderSnapshot) {
+    val description = getString(R.string.delete_batch_confirm, current.batch.name, current.records.size)
+    val consequence = if (current.batches.size == 1) {
+      getString(R.string.delete_last_batch_description)
+    } else {
+      getString(R.string.delete_batch_description)
+    }
+    MaterialAlertDialogBuilder(this).setTitle(R.string.delete_current_batch)
+      .setMessage("$description\n\n$consequence")
+      .setNegativeButton(R.string.cancel, null)
+      .setPositiveButton(R.string.delete_batch) { _, _ ->
+        snackbar?.dismiss()
+        model.deleteBatch(current.batch.id)
+      }.show()
   }
 
   private fun newBatch() {

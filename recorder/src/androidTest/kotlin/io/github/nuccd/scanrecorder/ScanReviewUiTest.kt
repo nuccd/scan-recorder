@@ -74,6 +74,23 @@ internal class ScanReviewUiTest {
     waitFor { acknowledged }
   }
 
+  @Test
+  fun batchDeletionIsVisibleAndCancellingKeepsTheBatchAndRecords() {
+    val before = requireNotNull(model.state.value?.snapshot)
+    node("io.github.nuccd.scanrecorder:id/batch_button").performAction(AccessibilityNodeInfo.ACTION_CLICK)
+    assertEquals("删除当前批次", node("android:id/button3").text.toString())
+    node("android:id/button3").performAction(AccessibilityNodeInfo.ACTION_CLICK)
+    val message = node("android:id/message").text.toString()
+    assertTrue(message.contains(before.batch.name))
+    assertTrue(message.contains("${before.records.size} 条记录"))
+    assertTrue(message.contains("无法撤销"))
+    assertEquals("删除批次", node("android:id/button1").text.toString())
+    screenshot("batch-delete-confirmation.png")
+    node("android:id/button2").performAction(AccessibilityNodeInfo.ACTION_CLICK)
+    instrumentation.waitForIdleSync()
+    assertEquals(before, model.state.value?.snapshot)
+  }
+
   private fun node(id: String): AccessibilityNodeInfo {
     var found: AccessibilityNodeInfo? = null
     waitFor {

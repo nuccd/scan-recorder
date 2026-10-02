@@ -4,6 +4,14 @@
   <string name="batches">批次</string>
   <string name="new_batch">新建批次</string>
   <string name="batch_name">批次名称</string>
+  <string name="current_batch_label">%1$s（当前）</string>
+  <string name="delete_current_batch">删除当前批次</string>
+  <string name="delete_batch">删除批次</string>
+  <string name="delete_batch_confirm">删除批次“%1$s”及其中的 %2$d 条记录？此操作无法撤销。</string>
+  <string name="delete_batch_description">删除后自动切换到最近的其他批次。</string>
+  <string name="delete_last_batch_description">这是最后一个批次。删除后会新建一个空批次，供你继续扫码。</string>
+  <string name="replacement_batch_name">新批次 · %1$s</string>
+  <string name="batch_deleted">批次及其中记录已删除</string>
   <string name="start_scan">开始扫码</string>
   <string name="pause_scan">暂停扫码</string>
   <string name="torch">补光</string>

@@ -59,6 +59,19 @@ internal class RecorderStore(context: Context, databaseName: String = "scan-reco
 
   fun newBatch(name: String): RecorderSnapshot = transaction { createBatch(name) }
 
+  fun deleteBatch(batchId: String, defaultName: String): RecorderSnapshot = transaction {
+    check(writableDatabase.delete("batches", "id = ?", arrayOf(batchId)) == 1)
+    val remaining = batches()
+    if (remaining.isEmpty()) {
+      createBatch(defaultName)
+    } else {
+      val selected = setting("current_batch")
+      val batch = remaining.firstOrNull { it.id == selected } ?: remaining.first()
+      setSetting("current_batch", batch.id)
+      snapshot(batch)
+    }
+  }
+
   fun select(batchId: String): RecorderSnapshot = transaction {
     val batch = batches().first { it.id == batchId }
     setSetting("current_batch", batch.id)
