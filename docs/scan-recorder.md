@@ -1,6 +1,6 @@
 # 扫码记录（0.2.2）
 
-`recorder` 是同事使用的独立 Android App（包名 `io.github.nuccd.scanrecorder`）。`quickie` 保留识别库，`sample` 保留上游示例。App 使用随 APK 提供的 ML Kit 模型，不需要联网下载模型。
+扫码记录 App 位于 `recorder` 模块（包名 `io.github.nuccd.scanrecorder`）。`quickie` 保留识别库，`sample` 保留上游示例。App 使用随 APK 提供的 ML Kit 模型，不需要联网下载模型。
 
 ## 使用
 
