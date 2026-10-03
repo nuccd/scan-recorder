@@ -64,8 +64,10 @@ internal class ScanReviewUiTest {
     }
     assertTrue(node("android:id/message").text.toString().contains("第 1、3 行重复"))
     assertEquals("确认，继续扫码", node("android:id/button1").text.toString())
-    assertFalse(instrumentation.uiAutomation.rootInActiveWindow
-      .findAccessibilityNodeInfosByViewId("android:id/button2").any { it.isVisibleToUser })
+    assertFalse(
+      instrumentation.uiAutomation.rootInActiveWindow
+        .findAccessibilityNodeInfosByViewId("android:id/button2").any { it.isVisibleToUser }
+    )
     instrumentation.sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
     assertFalse(acknowledged)
     assertTrue(requireNotNull(review).isShowing)

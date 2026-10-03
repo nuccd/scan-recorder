@@ -67,12 +67,18 @@ internal class RecorderReviewFlowTest {
 
   @Test
   fun duplicateIsHeldForAcknowledgementAndReportsEveryExistingSequence() {
-    onMain { model.offerScan("A"); model.confirmScan() }
+    onMain {
+      model.offerScan("A")
+      model.confirmScan()
+    }
     awaitReady()
     val batch = requireNotNull(state().snapshot).batch.id
     onMain { model.setDuplicates(batch, true) }
     awaitReady()
-    onMain { model.offerScan("A"); model.confirmScan() }
+    onMain {
+      model.offerScan("A")
+      model.confirmScan()
+    }
     awaitReady()
     onMain { model.setDuplicates(batch, false) }
     awaitReady()

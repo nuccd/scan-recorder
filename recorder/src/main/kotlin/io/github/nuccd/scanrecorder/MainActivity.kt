@@ -40,6 +40,7 @@ internal class MainActivity : AppCompatActivity() {
   private var snackbar: Snackbar? = null
   private lateinit var review: ScanReviewDialog
   private var squareFrame = false
+  private val resizeFrame = Runnable { resizeScanWindow() }
 
   private val cameraPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
     if (granted) {
@@ -111,7 +112,11 @@ internal class MainActivity : AppCompatActivity() {
       squareFrame = checkedId == R.id.qr_frame
       resizeScanWindow()
     }
-    binding.scanner.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> resizeScanWindow() }
+    binding.scanner.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+      // Resize the sibling after this layout pass so its new size gets measured on the next pass.
+      binding.scanner.removeCallbacks(resizeFrame)
+      binding.scanner.post(resizeFrame)
+    }
     binding.scanFrame.addOnLayoutChangeListener { _, left, top, right, bottom, _, _, _, _ ->
       binding.scanner.setScanWindow(
         RectF(
@@ -420,6 +425,7 @@ internal class MainActivity : AppCompatActivity() {
 
   override fun onDestroy() {
     review.dismiss()
+    binding.scanner.removeCallbacks(resizeFrame)
     binding.scanner.release()
     super.onDestroy()
   }
