@@ -7,7 +7,8 @@ internal data class ScanBatch(val id: String, val name: String, val createdAt: L
 internal data class RecorderSnapshot(
   val batches: List<ScanBatch>,
   val batch: ScanBatch,
-  val records: List<ScanRecord>
+  val records: List<ScanRecord>,
+  val totalRecordCount: Long = records.size.toLong()
 ) {
   val distinctCount: Int get() = records.map { it.value }.toSet().size
 }

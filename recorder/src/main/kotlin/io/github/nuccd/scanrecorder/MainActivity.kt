@@ -10,7 +10,6 @@ import android.provider.Settings
 import android.text.InputType
 import android.view.HapticFeedbackConstants
 import android.view.WindowManager
-import android.widget.EditText
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -22,9 +21,7 @@ import androidx.lifecycle.ViewModelProvider
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import io.github.nuccd.scanrecorder.databinding.ActivityMainBinding
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import io.github.nuccd.scanrecorder.databinding.DialogTextInputBinding
 
 // Keeps screen actions and the Android lifecycle in one controller.
 @Suppress("TooManyFunctions")
@@ -244,26 +241,27 @@ internal class MainActivity : AppCompatActivity() {
   private fun editRecord(record: ScanRecord?) {
     val current = snapshot ?: return
     pauseScanning()
-    val input = EditText(this).apply {
+    val content = DialogTextInputBinding.inflate(layoutInflater)
+    val input = content.dialogInput.apply {
       hint = getString(R.string.record_content)
       inputType =
         InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
       minLines = 2
       maxLines = 6
       setText(record?.value.orEmpty())
-      setSelection(text.length)
+      setSelection(requireNotNull(text).length)
     }
     val builder = MaterialAlertDialogBuilder(this)
       .setTitle(if (record == null) R.string.add_record else R.string.edit_record)
       .setMessage(R.string.record_hint)
-      .setView(input)
+      .setView(content.root)
       .setNegativeButton(R.string.cancel, null)
       .setPositiveButton(R.string.save, null)
     if (record != null) builder.setNeutralButton(R.string.delete) { _, _ -> model.delete(current.batch.id, record.id) }
     val dialog = builder.create()
     dialog.setOnShowListener {
       dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-        val value = input.text.toString()
+        val value = requireNotNull(input.text).toString()
         when {
           value.isEmpty() -> input.error = getString(R.string.empty_content)
           !RecordRules.canStore(current.records, value, current.batch.allowDuplicates, record?.id) ->
@@ -281,51 +279,7 @@ internal class MainActivity : AppCompatActivity() {
   private fun chooseBatch() {
     val current = snapshot ?: return
     pauseScanning()
-    val names = current.batches.map {
-      if (it.id == current.batch.id) getString(R.string.current_batch_label, it.name) else it.name
-    } + getString(R.string.new_batch)
-    MaterialAlertDialogBuilder(this).setTitle(R.string.batches).setItems(names.toTypedArray()) { _, position ->
-      if (position == current.batches.size) newBatch() else model.selectBatch(current.batches[position].id)
-    }.setNeutralButton(R.string.delete_current_batch) { _, _ -> deleteBatch(current) }.show()
-  }
-
-  private fun deleteBatch(current: RecorderSnapshot) {
-    val description = getString(R.string.delete_batch_confirm, current.batch.name, current.records.size)
-    val consequence = if (current.batches.size == 1) {
-      getString(R.string.delete_last_batch_description)
-    } else {
-      getString(R.string.delete_batch_description)
-    }
-    MaterialAlertDialogBuilder(this).setTitle(R.string.delete_current_batch)
-      .setMessage("$description\n\n$consequence")
-      .setNegativeButton(R.string.cancel, null)
-      .setPositiveButton(R.string.delete_batch) { _, _ ->
-        snackbar?.dismiss()
-        model.deleteBatch(current.batch.id)
-      }.show()
-  }
-
-  private fun newBatch() {
-    val input = EditText(this).apply {
-      hint = getString(R.string.batch_name)
-      inputType = InputType.TYPE_CLASS_TEXT
-      setText(SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.ROOT).format(Date()))
-      selectAll()
-    }
-    val dialog = MaterialAlertDialogBuilder(this).setTitle(R.string.new_batch).setView(input)
-      .setNegativeButton(R.string.cancel, null).setPositiveButton(R.string.save, null).create()
-    dialog.setOnShowListener {
-      dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-        val name = input.text.toString().trim()
-        if (name.isEmpty()) {
-            input.error = getString(R.string.batch_name_required)
-        } else {
-          model.newBatch(name)
-          dialog.dismiss()
-        }
-      }
-    }
-    dialog.show()
+    BatchDialogs(this, model) { snackbar?.dismiss() }.show(current)
   }
 
   private fun clearBatch() {

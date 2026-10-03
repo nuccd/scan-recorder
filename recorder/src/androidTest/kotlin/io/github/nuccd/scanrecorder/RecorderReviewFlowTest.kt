@@ -107,6 +107,26 @@ internal class RecorderReviewFlowTest {
     it.load("unused").records
   }
 
+  @Test
+  fun deletingAllBatchesAlsoClearsAnyPendingCandidateAndItsSavedState() {
+    val batch = requireNotNull(state().snapshot).batch.id
+    onMain { model.save(batch, "keep until deletion") }
+    awaitReady()
+    onMain {
+      model.offerScan("pending")
+      model.deleteAllBatches()
+    }
+    awaitReady()
+    val after = requireNotNull(state().snapshot)
+    assertEquals(1, after.batches.size)
+    assertTrue(after.records.isEmpty())
+    assertEquals(0L, after.totalRecordCount)
+    assertNull(state().pendingScan)
+    assertFalse(savedState.contains("pending_scan_value"))
+    assertFalse(savedState.contains("pending_scan_batch"))
+    assertTrue(persistentRecords().isEmpty())
+  }
+
   private fun state(): RecorderState {
     lateinit var current: RecorderState
     onMain { current = requireNotNull(model.state.value) }

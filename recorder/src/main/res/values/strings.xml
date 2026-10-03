@@ -12,6 +12,12 @@
   <string name="delete_last_batch_description">这是最后一个批次。删除后会新建一个空批次，供你继续扫码。</string>
   <string name="replacement_batch_name">新批次 · %1$s</string>
   <string name="batch_deleted">批次及其中记录已删除</string>
+  <string name="rename_current_batch">重命名当前批次</string>
+  <string name="batch_renamed">批次已重命名</string>
+  <string name="delete_all_batches">删除全部批次</string>
+  <string name="delete_all_batches_confirm">删除全部 %1$d 个批次及其中的 %2$d 条记录？此操作无法撤销。\n\n删除后会新建一个空批次，供你继续扫码。</string>
+  <string name="all_batches_deleted">全部批次及记录已删除，已新建空批次</string>
+  <string name="close">关闭</string>
   <string name="start_scan">开始扫码</string>
   <string name="pause_scan">暂停扫码</string>
   <string name="torch">补光</string>

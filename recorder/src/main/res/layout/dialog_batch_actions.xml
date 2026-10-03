@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:orientation="vertical" android:paddingStart="24dp" android:paddingEnd="24dp"
+    android:paddingTop="12dp" android:paddingBottom="8dp">
+  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+    <com.google.android.material.button.MaterialButton android:id="@+id/new_batch_button"
+        style="@style/Widget.Material3.Button.TextButton" android:layout_width="0dp"
+        android:layout_height="wrap_content" android:layout_weight="1" android:minWidth="0dp"
+        android:paddingStart="8dp" android:paddingEnd="8dp" android:text="@string/new_batch" />
+    <com.google.android.material.button.MaterialButton android:id="@+id/delete_batch_button"
+        style="@style/Widget.Material3.Button.TextButton" android:layout_width="0dp"
+        android:layout_height="wrap_content" android:layout_weight="1" android:minWidth="0dp"
+        android:paddingStart="8dp" android:paddingEnd="8dp" android:textColor="?attr/colorError"
+        android:text="@string/delete_current_batch" />
+  </LinearLayout>
+  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+    <com.google.android.material.button.MaterialButton android:id="@+id/rename_batch_button"
+        style="@style/Widget.Material3.Button.TextButton" android:layout_width="0dp"
+        android:layout_height="wrap_content" android:layout_weight="1" android:minWidth="0dp"
+        android:paddingStart="8dp" android:paddingEnd="8dp" android:text="@string/rename_current_batch" />
+    <com.google.android.material.button.MaterialButton android:id="@+id/delete_all_batches_button"
+        style="@style/Widget.Material3.Button.TextButton" android:layout_width="0dp"
+        android:layout_height="wrap_content" android:layout_weight="1" android:minWidth="0dp"
+        android:paddingStart="8dp" android:paddingEnd="8dp" android:textColor="?attr/colorError"
+        android:text="@string/delete_all_batches" />
+  </LinearLayout>
+</LinearLayout>

@@ -105,6 +105,16 @@ internal class RecorderViewModel @JvmOverloads constructor(
 
   fun selectBatch(id: String) = submit { publish(store.select(id)) }
 
+  fun renameBatch(id: String, name: String) = submit {
+    publish(store.renameBatch(id, name), RecorderEvent.Notice(R.string.batch_renamed))
+  }
+
+  fun deleteAllBatches() = submit {
+    val replacementName = getApplication<Application>().getString(R.string.replacement_batch_name, defaultBatchName())
+    val updated = store.deleteAllBatches(replacementName)
+    publish(updated, RecorderEvent.Notice(R.string.all_batches_deleted), clearPending = true)
+  }
+
   fun deleteBatch(id: String) = submit {
     val replacementName = getApplication<Application>().getString(R.string.replacement_batch_name, defaultBatchName())
     publish(store.deleteBatch(id, replacementName), RecorderEvent.Notice(R.string.batch_deleted))

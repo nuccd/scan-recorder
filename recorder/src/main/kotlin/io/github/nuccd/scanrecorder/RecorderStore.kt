@@ -59,6 +59,23 @@ internal class RecorderStore(context: Context, databaseName: String = "scan-reco
 
   fun newBatch(name: String): RecorderSnapshot = transaction { createBatch(name) }
 
+  fun renameBatch(batchId: String, name: String): RecorderSnapshot = transaction {
+    val normalized = name.trim()
+    require(normalized.isNotEmpty())
+    val values = ContentValues().apply { put("name", normalized) }
+    check(
+      writableDatabase.update("batches", values, "id = ?", arrayOf(batchId)) == 1
+    )
+    val available = batches()
+    val selected = setting("current_batch")
+    snapshot(available.firstOrNull { it.id == selected } ?: available.first())
+  }
+
+  fun deleteAllBatches(defaultName: String): RecorderSnapshot = transaction {
+    writableDatabase.delete("batches", null, null)
+    createBatch(defaultName)
+  }
+
   fun deleteBatch(batchId: String, defaultName: String): RecorderSnapshot = transaction {
     check(writableDatabase.delete("batches", "id = ?", arrayOf(batchId)) == 1)
     val remaining = batches()
@@ -156,7 +173,13 @@ internal class RecorderStore(context: Context, databaseName: String = "scan-reco
     }
   }
 
-  private fun snapshot(batch: ScanBatch): RecorderSnapshot = RecorderSnapshot(batches(), batch, records(batch.id))
+  private fun snapshot(batch: ScanBatch): RecorderSnapshot {
+    val count = readableDatabase.rawQuery("SELECT COUNT(*) FROM records", null).use { cursor ->
+      check(cursor.moveToFirst())
+      cursor.getLong(0)
+    }
+    return RecorderSnapshot(batches(), batch, records(batch.id), count)
+  }
 
   private fun nextPosition(batchId: String): Long {
     val position = readableDatabase.rawQuery("SELECT next_position FROM batches WHERE id = ?", arrayOf(batchId))
