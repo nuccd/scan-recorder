@@ -36,6 +36,7 @@ internal class MainActivity : AppCompatActivity() {
   private var foreground = false
   private var snackbar: Snackbar? = null
   private lateinit var review: ScanReviewDialog
+  private lateinit var cameraUi: ScannerCameraUi
   private var squareFrame = false
   private val resizeFrame = Runnable { resizeScanWindow() }
 
@@ -69,6 +70,8 @@ internal class MainActivity : AppCompatActivity() {
     }
     model = ViewModelProvider(this)[RecorderViewModel::class.java]
     review = ScanReviewDialog(this, model::confirmScan, model::cancelScan)
+    cameraUi = ScannerCameraUi(binding, savedInstanceState)
+    binding.scanner.setDiagnosticsListener(ScanDiagnosticsLog::write)
     scanRequested = savedInstanceState?.getBoolean("scanning") ?: false
     squareFrame = savedInstanceState?.getBoolean("square_frame") ?: false
     setupFrameSelector()
@@ -176,6 +179,7 @@ internal class MainActivity : AppCompatActivity() {
       adapter.submit(current.records)
       if (ready) startCameraIfReady()
     }
+    cameraUi.setActive(cameraActive && foreground && ready)
   }
 
   private fun renderReview(state: RecorderState) {
@@ -199,6 +203,7 @@ internal class MainActivity : AppCompatActivity() {
       return
     }
     cameraActive = true
+    cameraUi.setActive(model.state.value?.let { !it.working && it.pendingScan == null } == true)
     binding.scanButton.setText(R.string.pause_scan)
     binding.status.setText(R.string.camera_starting)
     window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -230,6 +235,7 @@ internal class MainActivity : AppCompatActivity() {
   }
 
   private fun stopCamera() {
+    cameraUi.setActive(false)
     binding.scanner.stop()
     cameraActive = false
     binding.torchButton.isEnabled = false
@@ -374,6 +380,7 @@ internal class MainActivity : AppCompatActivity() {
   override fun onSaveInstanceState(outState: Bundle) {
     outState.putBoolean("scanning", scanRequested)
     outState.putBoolean("square_frame", squareFrame)
+    cameraUi.saveState(outState)
     super.onSaveInstanceState(outState)
   }
 

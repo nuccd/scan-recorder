@@ -1,5 +1,6 @@
 package io.github.g00fy2.quickie
 
+import android.os.SystemClock
 import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
@@ -13,7 +14,7 @@ internal class QRCodeAnalyzer(
   private val onSuccess: ((Barcode) -> Unit),
   private val onFailure: ((Exception) -> Unit),
   private val onPassCompleted: ((Boolean) -> Unit),
-  private val onFrame: ((List<Barcode>, ImageProxy) -> Unit)? = null
+  private val onFrame: ((List<Barcode>, ImageProxy, Long) -> Unit)? = null
 ) : ImageAnalysis.Analyzer {
 
   private val barcodeScannerDelegate = lazy {
@@ -56,9 +57,11 @@ internal class QRCodeAnalyzer(
       return
     }
     try {
+      val startedAt = SystemClock.elapsedRealtime()
       scanner.process(InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees))
         .addOnSuccessListener { codes ->
-          onFrame?.invoke(codes, imageProxy)
+          val decodeMillis = (SystemClock.elapsedRealtime() - startedAt).coerceAtLeast(0L)
+          onFrame?.invoke(codes, imageProxy, decodeMillis)
           if (onFrame == null) codes.firstOrNull()?.let(onSuccess)
         }
         .addOnFailureListener {

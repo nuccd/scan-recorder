@@ -18,7 +18,16 @@
       <View android:id="@+id/scan_frame" android:layout_width="260dp" android:layout_height="88dp"
           android:layout_gravity="center"
           android:background="@drawable/scan_frame" android:importantForAccessibility="no" />
+      <io.github.nuccd.scanrecorder.ScanFocusIndicatorView android:id="@+id/focus_indicator"
+          android:layout_width="match_parent" android:layout_height="match_parent"
+          android:clickable="false" android:focusable="false" android:importantForAccessibility="no" />
     </FrameLayout>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="48dp" android:gravity="center_vertical">
+      <TextView android:id="@+id/zoom_value" android:layout_width="wrap_content" android:layout_height="wrap_content"
+          android:minWidth="80dp" android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+      <SeekBar android:id="@+id/zoom_slider" android:layout_width="0dp" android:layout_height="match_parent"
+          android:layout_weight="1" android:contentDescription="@string/zoom_description" android:enabled="false" />
+    </LinearLayout>
     <TextView android:id="@+id/status" android:layout_width="match_parent" android:layout_height="wrap_content"
         android:paddingTop="8dp" android:paddingBottom="4dp" android:accessibilityLiveRegion="polite"
         android:text="@string/loading" android:textAppearance="@style/TextAppearance.Material3.BodySmall"

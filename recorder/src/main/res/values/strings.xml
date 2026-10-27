@@ -21,6 +21,12 @@
   <string name="start_scan">开始扫码</string>
   <string name="pause_scan">暂停扫码</string>
   <string name="torch">补光</string>
+  <string name="zoom_ratio">变焦 %1$.1f×</string>
+  <string name="zoom_description">调整相机变焦倍率</string>
+  <string name="focus_focusing">正在对焦…</string>
+  <string name="focus_focused">已对焦</string>
+  <string name="focus_failed">对焦未成功，请重试</string>
+  <string name="focus_unsupported">相机不支持点击对焦</string>
   <string name="allow_duplicates">允许重复</string>
   <string name="counts">当前记录 %1$d 条 · 不同内容 %2$d 条</string>
   <string name="record_sequence">%1$d</string>

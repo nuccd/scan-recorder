@@ -1,0 +1,7 @@
+<resources>
+  <color name="focus_pending">#FFD54F</color>
+  <color name="focus_success">#69F0AE</color>
+  <color name="focus_warning">#FFAB91</color>
+  <color name="focus_label">#FFFFFF</color>
+  <color name="focus_shadow">#000000</color>
+</resources>
