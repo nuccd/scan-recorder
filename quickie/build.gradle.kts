@@ -45,6 +45,7 @@ dependencies {
 
   add("bundledImplementation", libs.mlkit.barcodeScanning)
   add("unbundledImplementation", libs.mlkit.barcodeScanningGms)
+  implementation(libs.zxingCpp)
 
   testImplementation(libs.test.junit)
   testRuntimeOnly(libs.test.junit.platformLauncher)

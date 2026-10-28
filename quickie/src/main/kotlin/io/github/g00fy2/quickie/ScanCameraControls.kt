@@ -32,6 +32,7 @@ internal class ScanCameraControls(
   private var focusVisible = false
   private var zoomListener: (ScanZoomState?) -> Unit = {}
   private var focusListener: (ScanFocusState) -> Unit = {}
+  private var releaseFocusFrames = Runnable {}
   private val hideFocus = Runnable {
     focusVisible = false
     publishFocus(focusState.copy(status = ScanFocusStatus.HIDDEN))
@@ -123,6 +124,7 @@ internal class ScanCameraControls(
     val previewReady = preview.width > 0 && preview.height > 0
     if (boundCamera == null || !interactionEnabled || !previewReady) return
     handler.removeCallbacks(hideFocus)
+    handler.removeCallbacks(releaseFocusFrames)
     focusVisible = true
     val position = ScanFocusState(x + preview.left, y + preview.top, ScanFocusStatus.FOCUSING)
     val token = adjustments.begin(ScanControlAdjustments.Operation.FOCUS)
@@ -131,7 +133,7 @@ internal class ScanCameraControls(
     try {
       val point = preview.meteringPointFactory.createPoint(x, y)
       val action = FocusMeteringAction.Builder(point, FocusMeteringAction.FLAG_AF or FocusMeteringAction.FLAG_AE)
-        .setAutoCancelDuration(FOCUS_FEEDBACK_MILLIS, TimeUnit.MILLISECONDS).build()
+        .setAutoCancelDuration(FOCUS_AUTO_CANCEL_MILLIS, TimeUnit.MILLISECONDS).build()
       val autofocus = FocusMeteringAction.Builder(point, FocusMeteringAction.FLAG_AF).build()
       if (!boundCamera.cameraInfo.isFocusMeteringSupported(autofocus)) {
         adjustments.finish(token)
@@ -140,6 +142,13 @@ internal class ScanCameraControls(
         return
       }
       publishFocus(position)
+      releaseFocusFrames = Runnable {
+        if (adjustments.allowFrames(token)) {
+          onGeometryChanged()
+          Log.i(DIAGNOSTIC_TAG, "focus pending; analysis resumed after ${FOCUS_FRAME_WAIT_MILLIS}ms")
+        }
+      }
+      handler.postDelayed(releaseFocusFrames, FOCUS_FRAME_WAIT_MILLIS)
       val result = boundCamera.cameraControl.startFocusAndMetering(action)
       result.addListener({
         if (adjustments.finish(token)) {
@@ -164,6 +173,7 @@ internal class ScanCameraControls(
       adjustments.cancel(ScanControlAdjustments.Operation.FOCUS)
       onGeometryChanged()
       handler.removeCallbacks(hideFocus)
+      handler.removeCallbacks(releaseFocusFrames)
       hideFocus.run()
       try {
         camera?.cameraControl?.cancelFocusAndMetering()
@@ -184,6 +194,7 @@ internal class ScanCameraControls(
     zoomState = null
     zoomListener(null)
     handler.removeCallbacks(hideFocus)
+    handler.removeCallbacks(releaseFocusFrames)
     hideFocus.run()
   }
 
@@ -197,6 +208,8 @@ internal class ScanCameraControls(
 
   private companion object {
     const val FOCUS_FEEDBACK_MILLIS = 3000L
+    const val FOCUS_AUTO_CANCEL_MILLIS = 3000L
+    const val FOCUS_FRAME_WAIT_MILLIS = 300L
     const val DIAGNOSTIC_TAG = "SCAN_DIAG"
   }
 }

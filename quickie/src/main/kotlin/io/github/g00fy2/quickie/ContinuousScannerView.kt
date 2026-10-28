@@ -19,7 +19,6 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
-import com.google.mlkit.vision.barcode.common.Barcode
 import io.github.g00fy2.quickie.config.BarcodeFormat
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicLong
@@ -144,13 +143,13 @@ public class ContinuousScannerView @JvmOverloads public constructor(
   )
 
   private fun processFrame(
-    codes: List<Barcode>,
+    codes: List<DecodedBarcode>,
     image: ImageProxy,
     decodeMillis: Long,
     frameRevision: Long,
     onScan: (String) -> Unit
   ) {
-    val decoded = codes.filter { !it.rawValue.isNullOrEmpty() }
+    val decoded = codes.filter { it.rawValue.isNotEmpty() }
     val imageToView = previewView.sensorToViewTransform?.let { sensorToView ->
       BarcodeCoordinates.imageToView(
         image.imageInfo.sensorToBufferTransformMatrix,
@@ -167,9 +166,7 @@ public class ContinuousScannerView @JvmOverloads public constructor(
     }
     val window = scanWindow ?: RectF(0f, 0f, width.toFloat(), height.toFloat())
     val inWindow = decoded.mapNotNull { code ->
-      val bounds = code.boundingBox?.let(::RectF)
-      val inside = bounds != null && BarcodeCoordinates.isInsideWindow(bounds, imageToView, window)
-      code.rawValue?.takeIf { it.isNotEmpty() && inside }
+      code.rawValue.takeIf { BarcodeCoordinates.isInsideWindow(code.bounds, imageToView, window) }
     }
     if (!cameraControls.acceptsFrame(frameRevision)) {
       stableCandidate.reset()
@@ -178,7 +175,7 @@ public class ContinuousScannerView @JvmOverloads public constructor(
     }
     val visibleValues = inWindow.toSet()
     val now = SystemClock.elapsedRealtime()
-    val target = findTarget(visibleValues, now)
+    val target = findTarget(visibleValues, decoded.isNotEmpty(), now)
     val delivered = trigger.next(visibleValues, target, now)
     val status = when {
       !deliveryEnabled -> ScanFrameStatus.REVIEW_PAUSED
@@ -193,12 +190,14 @@ public class ContinuousScannerView @JvmOverloads public constructor(
     delivered?.let(onScan)
   }
 
-  private fun findTarget(visibleValues: Set<String>, now: Long): String? {
+  private fun findTarget(visibleValues: Set<String>, hasDecoded: Boolean, now: Long): String? {
     if (!deliveryEnabled) {
       stableCandidate.reset()
       return null
     }
     val ambiguous = visibleValues.size > 1
+    // Only an undecoded frame may retain brief evidence; ambiguity and known out-of-window codes must clear it.
+    if (ambiguous || (visibleValues.isEmpty() && hasDecoded)) stableCandidate.reset()
     if (lastAmbiguous != ambiguous) {
       lastAmbiguous = ambiguous
       onAmbiguous(ambiguous)

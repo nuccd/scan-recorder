@@ -16,7 +16,7 @@ public enum class ScanFrameStatus {
 /**
  * Frame metadata and cumulative session counters, without barcode contents.
  * [width] and [height] describe the analysis buffer before [rotationDegrees] is applied.
- * [decodeMillis] measures ML Kit processing through its success callback.
+ * [decodeMillis] measures processing by both engines through the merged frame callback.
  * [statusCounts] includes every [ScanFrameStatus], including stages not observed in this session.
  */
 @Suppress("LongParameterList")

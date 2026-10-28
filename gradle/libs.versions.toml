@@ -16,6 +16,7 @@ cameraX = "1.6.1"
 
 barcodeScanning = "17.3.0"
 barcodeScanningGms = "18.3.1"
+zxingCpp = "3.1.1"
 
 materialDesign = "1.14.0"
 
@@ -34,6 +35,7 @@ androidx-core = { module = "androidx.core:core-ktx", version.ref = "core" }
 
 mlkit-barcodeScanning = { module = "com.google.mlkit:barcode-scanning", version.ref = "barcodeScanning" }
 mlkit-barcodeScanningGms = { module = "com.google.android.gms:play-services-mlkit-barcode-scanning", version.ref = "barcodeScanningGms" }
+zxingCpp = { module = "io.github.zxing-cpp:android", version.ref = "zxingCpp" }
 
 google-materialDesign = { module = "com.google.android.material:material", version.ref = "materialDesign" }
 

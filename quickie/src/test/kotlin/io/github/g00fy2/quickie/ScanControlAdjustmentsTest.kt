@@ -62,4 +62,48 @@ internal class ScanControlAdjustmentsTest {
     assertTrue(state.finish(zoom))
     assertTrue(state.acceptsFrame(state.revision))
   }
+
+  @Test
+  fun `a bounded focus wait permits fresh frames while retaining the real completion token`() {
+    val state = ScanControlAdjustments()
+    val focus = state.begin(ScanControlAdjustments.Operation.FOCUS)
+    val beforeDeadline = state.revision
+    assertFalse(state.acceptsFrame(beforeDeadline))
+    assertTrue(state.allowFrames(focus))
+    assertFalse(state.acceptsFrame(beforeDeadline))
+    assertTrue(state.acceptsFrame(state.revision))
+    assertTrue(state.finish(focus))
+    assertTrue(state.acceptsFrame(state.revision))
+  }
+
+  @Test
+  fun `an old focus deadline cannot unblock a newer tap or a restarted session`() {
+    val state = ScanControlAdjustments()
+    val first = state.begin(ScanControlAdjustments.Operation.FOCUS)
+    val newer = state.begin(ScanControlAdjustments.Operation.FOCUS)
+    assertFalse(state.allowFrames(first))
+    assertFalse(state.acceptsFrame(state.revision))
+    state.clear()
+    val restarted = state.begin(ScanControlAdjustments.Operation.FOCUS)
+    assertFalse(state.allowFrames(newer))
+    assertFalse(state.acceptsFrame(state.revision))
+    assertTrue(state.allowFrames(restarted))
+    assertTrue(state.acceptsFrame(state.revision))
+  }
+
+  @Test
+  fun `the focus deadline cannot unblock a concurrent zoom or replay its own frame revision`() {
+    val state = ScanControlAdjustments()
+    val focus = state.begin(ScanControlAdjustments.Operation.FOCUS)
+    val zoom = state.begin(ScanControlAdjustments.Operation.ZOOM)
+    assertTrue(state.allowFrames(focus))
+    val releasedFocusRevision = state.revision
+    assertFalse(state.allowFrames(focus))
+    assertFalse(state.acceptsFrame(releasedFocusRevision))
+    assertTrue(state.finish(zoom))
+    assertFalse(state.acceptsFrame(releasedFocusRevision))
+    assertTrue(state.acceptsFrame(state.revision))
+    state.cancel(ScanControlAdjustments.Operation.FOCUS)
+    assertFalse(state.finish(focus))
+  }
 }

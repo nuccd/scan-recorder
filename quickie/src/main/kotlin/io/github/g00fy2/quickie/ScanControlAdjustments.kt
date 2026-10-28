@@ -6,16 +6,17 @@ internal class ScanControlAdjustments {
   data class Token(val id: Long, val operation: Operation)
 
   private val active = mutableMapOf<Operation, Token>()
+  private val frameUnblocked = mutableSetOf<Token>()
   private var nextId = 0L
 
   @Volatile var revision: Long = 0L
     private set
 
-  val isAdjusting: Boolean get() = active.isNotEmpty()
+  val isAdjusting: Boolean get() = active.values.any { it !in frameUnblocked }
 
   fun begin(operation: Operation): Token {
     val token = Token(++nextId, operation)
-    active[operation] = token
+    active.put(operation, token)?.let(frameUnblocked::remove)
     revision++
     return token
   }
@@ -23,17 +24,26 @@ internal class ScanControlAdjustments {
   fun finish(token: Token): Boolean {
     if (active[token.operation] != token) return false
     active.remove(token.operation)
+    frameUnblocked.remove(token)
+    revision++
+    return true
+  }
+
+  /** Keeps the callback token alive while allowing freshly captured frames after a bounded wait. */
+  fun allowFrames(token: Token): Boolean {
+    if (active[token.operation] != token || !frameUnblocked.add(token)) return false
     revision++
     return true
   }
 
   fun cancel(operation: Operation) {
-    active.remove(operation)
+    active.remove(operation)?.let(frameUnblocked::remove)
     revision++
   }
 
   fun clear() {
     active.clear()
+    frameUnblocked.clear()
     revision++
   }
 

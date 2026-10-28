@@ -4,6 +4,8 @@
 
 使用与构建说明见 [扫码记录](docs/scan-recorder.md)。下面保留上游 quickie 的库文档。
 
+连续扫码使用 ML Kit，并以 [ZXing-C++](https://github.com/zxing-cpp/zxing-cpp)（Apache-2.0）补充条形码解码；两者均在手机本地运行。
+
 ## quickie
 
 ![quickie logo](https://raw.githubusercontent.com/G00fY2/quickie/gh-pages/media/logo_dark.svg#gh-dark-mode-only)
