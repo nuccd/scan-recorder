@@ -9,7 +9,7 @@ import zxingcpp.BarcodeReader
 import java.nio.ByteBuffer
 
 /** Supplements ML Kit with linear-only native decoding, retaining every valid result and its bounds. */
-internal class LinearBarcodeDecoder(formats: IntArray) {
+internal class LinearBarcodeDecoder(formats: IntArray, private val tuning: ScanTuningOptions = ScanTuningOptions()) {
   private val linearFormats = LINEAR_FORMATS.filterKeys { Barcode.FORMAT_ALL_FORMATS in formats || it in formats }
     .values.toSet()
   private var invertedLuminance: ByteBuffer? = null
@@ -17,11 +17,11 @@ internal class LinearBarcodeDecoder(formats: IntArray) {
     BarcodeReader(
       BarcodeReader.Options(
         formats = linearFormats,
-        tryHarder = true,
-        tryRotate = true,
-        tryInvert = true,
-        tryDownscale = false,
-        minLineCount = 2,
+        tryHarder = tuning.nativeTryHarder,
+        tryRotate = tuning.nativeTryRotate,
+        tryInvert = tuning.nativeTryInvert,
+        tryDownscale = tuning.nativeTryDownscale,
+        minLineCount = tuning.nativeMinLineCount,
         textMode = BarcodeReader.TextMode.PLAIN
       )
     )
@@ -34,6 +34,7 @@ internal class LinearBarcodeDecoder(formats: IntArray) {
     // JNI reports points relative to the rotated crop. Decode the complete buffer to match ML Kit coordinates.
     val found = convert(reader.read(FullImageProxy(image)))
     return found.ifEmpty {
+      if (!tuning.nativeInvertFallback) return@ifEmpty emptyList()
       // Native tryInvert does not cover every linear symbology; retry once without changing the source plane.
       val inverse = invert(image.width, image.height, luminance)
       convert(reader.read(FullImageProxy(image, inverse)))
@@ -43,7 +44,7 @@ internal class LinearBarcodeDecoder(formats: IntArray) {
   internal fun decode(bitmap: Bitmap, rotation: Int = 0): List<DecodedBarcode> {
     if (linearFormats.isEmpty()) return emptyList()
     val found = convert(reader.read(bitmap, rotation = rotation))
-    return found.ifEmpty { decodeInverted(bitmap, rotation) }
+    return found.ifEmpty { if (tuning.nativeInvertFallback) decodeInverted(bitmap, rotation) else emptyList() }
   }
 
   private fun decodeInverted(bitmap: Bitmap, rotation: Int): List<DecodedBarcode> {

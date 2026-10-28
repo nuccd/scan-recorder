@@ -1,5 +1,7 @@
 # 扫码记录（0.4.1）
 
+当前调优分支默认构建 0.4.2-tuning「扫码记录·调优」，提供参数设置与诊断界面，可与普通版并存。入口、参数和构建说明见 [调优界面](scan-tuning.md)。以下保留普通扫码流程与 0.4.1 的验证记录。
+
 扫码记录 App 位于 `recorder` 模块（包名 `io.github.nuccd.scanrecorder`）。`quickie` 保留识别库，`sample` 保留上游示例。App 使用随 APK 提供的 ML Kit 模型，不需要联网下载模型。
 
 ## 使用
@@ -93,7 +95,7 @@ TXT 在打开系统保存窗口前生成快照；旋转屏幕或系统回收进�
 .\scripts\build.ps1
 .\scripts\build.ps1 -Tasks @(':recorder:testBundledDebugUnitTest', ':quickie:testBundledDebugUnitTest', ':recorder:lintBundledDebug', 'detekt', '--no-daemon')
 # 连接测试手机或模拟器后，验证 SQLite、确认流程、弹窗及扫描框坐标：
-.\scripts\build.ps1 -Tasks @(':recorder:connectedBundledDebugAndroidTest', ':quickie:connectedBundledDebugAndroidTest', '--no-daemon')
+.\scripts\build.ps1 -Tasks @(':recorder:connectedBundledTuningAndroidTest', ':quickie:connectedBundledDebugAndroidTest', '--no-daemon')
 ```
 
 脚本自动寻找已安装的 JDK 17+，也可通过 `-JdkHome` 指定。Gradle 缓存放在项目的 `.gradle-user-home`，临时文件放在 `.local-temp`；项目位于 D 盘时这些数据也在 D 盘，不修改系统环境变量。使用 Android Studio 自身构建时，可将其 Gradle user home 配置为这个缓存目录。已有 SDK 仍使用 `local.properties` 指定的位置。

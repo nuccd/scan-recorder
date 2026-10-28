@@ -42,7 +42,8 @@ public class ContinuousScannerView @JvmOverloads public constructor(
   private var released = false
   private var scanWindow: RectF? = null
   private var deliveryEnabled = true
-  private val stableCandidate = StableScanCandidate()
+  private var stableCandidate = StableScanCandidate()
+  private var tuning = ScanTuningOptions()
   private var trigger = ScanTrigger()
   private val cameraControls = ScanCameraControls(previewView, mainExecutor) { stableCandidate.reset() }
   private val diagnostics = ScanDiagnosticsTracker()
@@ -120,7 +121,10 @@ public class ContinuousScannerView @JvmOverloads public constructor(
     .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
     .setResolutionSelector(
       ResolutionSelector.Builder().setResolutionStrategy(
-        ResolutionStrategy(Size(1280, 720), ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER)
+        ResolutionStrategy(
+          Size(tuning.resolution.width, tuning.resolution.height),
+          ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER
+        )
       ).build()
     ).build()
 
@@ -137,15 +141,16 @@ public class ContinuousScannerView @JvmOverloads public constructor(
       mainExecutor.execute { if (session == generation) onError(exception) }
     },
     onPassCompleted = {},
-    onFrame = { codes, image, decodeMillis ->
-      if (session == generation) processFrame(codes, image, decodeMillis, frameRevision.get(), onScan)
-    }
+    onFrame = { codes, image, metrics ->
+      if (session == generation) processFrame(codes, image, metrics, frameRevision.get(), onScan)
+    },
+    tuning = tuning
   )
 
   private fun processFrame(
     codes: List<DecodedBarcode>,
     image: ImageProxy,
-    decodeMillis: Long,
+    metrics: DecodeFrameMetrics,
     frameRevision: Long,
     onScan: (String) -> Unit
   ) {
@@ -161,7 +166,7 @@ public class ContinuousScannerView @JvmOverloads public constructor(
     }
     if (imageToView == null) {
       stableCandidate.reset()
-      reportFrame(image, decodeMillis, decoded.size, emptyList(), ScanFrameStatus.TRANSFORM_UNAVAILABLE)
+      reportFrame(image, metrics, decoded.size, emptyList(), ScanFrameStatus.TRANSFORM_UNAVAILABLE)
       return
     }
     val window = scanWindow ?: RectF(0f, 0f, width.toFloat(), height.toFloat())
@@ -170,7 +175,7 @@ public class ContinuousScannerView @JvmOverloads public constructor(
     }
     if (!cameraControls.acceptsFrame(frameRevision)) {
       stableCandidate.reset()
-      reportFrame(image, decodeMillis, decoded.size, inWindow, ScanFrameStatus.CAMERA_ADJUSTING)
+      reportFrame(image, metrics, decoded.size, inWindow, ScanFrameStatus.CAMERA_ADJUSTING)
       return
     }
     val visibleValues = inWindow.toSet()
@@ -186,7 +191,7 @@ public class ContinuousScannerView @JvmOverloads public constructor(
       target == null -> ScanFrameStatus.WAITING_FOR_STABILITY
       else -> ScanFrameStatus.ALREADY_REPORTED
     }
-    reportFrame(image, decodeMillis, decoded.size, inWindow, status)
+    reportFrame(image, metrics, decoded.size, inWindow, status)
     delivered?.let(onScan)
   }
 
@@ -207,14 +212,14 @@ public class ContinuousScannerView @JvmOverloads public constructor(
 
   private fun reportFrame(
     image: ImageProxy,
-    decodeMillis: Long,
+    metrics: DecodeFrameMetrics,
     decodedCount: Int,
     inWindow: List<String>,
     status: ScanFrameStatus
   ) {
     diagnostics.record(
-      image.width, image.height, image.imageInfo.rotationDegrees, decodeMillis,
-      decodedCount, inWindow.size, inWindow.toSet().size, status, SystemClock.elapsedRealtime()
+      image.width, image.height, image.imageInfo.rotationDegrees, metrics.decodeMillis,
+      decodedCount, inWindow.size, inWindow.toSet().size, status, SystemClock.elapsedRealtime(), metrics
     )?.let(onDiagnostics)
   }
 
@@ -258,6 +263,24 @@ public class ContinuousScannerView @JvmOverloads public constructor(
   /** Receives throttled frame diagnostics without barcode contents on the main thread. */
   public fun setDiagnosticsListener(listener: (ScanFrameDiagnostics) -> Unit) {
     onDiagnostics = listener
+  }
+
+  /** Apply experimental options while stopped, before [start]. */
+  public fun setTuningOptions(options: ScanTuningOptions) {
+    check(analysis == null) { "Stop the scanner before changing tuning options" }
+    tuning = options
+    stableCandidate = StableScanCandidate(
+      options.minimumFrames,
+      options.minimumMillis,
+      options.maximumGapMillis,
+      options.maximumObservationMillis
+    )
+    cameraControls.focusWaitMillis = options.focusWaitMillis
+  }
+
+  /** Clears diagnostic counters without interrupting camera capture or result review. */
+  public fun resetDiagnostics() {
+    diagnostics.reset()
   }
 
   public fun setTorch(enabled: Boolean) {

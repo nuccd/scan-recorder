@@ -6,6 +6,9 @@ internal class ScanDiagnosticsTracker {
   private val statusCounts = ScanFrameStatus.entries.associateWith { 0L }.toMutableMap()
   private var lastObservedMillis = 0L
   private var lastSnapshotMillis: Long? = null
+  private var sessionStartedMillis: Long? = null
+  private var averageDecodeMillis = 0.0
+  private var maxDecodeMillis = 0L
 
   @Suppress("LongParameterList")
   fun record(
@@ -17,12 +20,17 @@ internal class ScanDiagnosticsTracker {
     inWindowCount: Int,
     distinctInWindowCount: Int,
     status: ScanFrameStatus,
-    nowMillis: Long
+    nowMillis: Long,
+    metrics: DecodeFrameMetrics = DecodeFrameMetrics()
   ): ScanFrameDiagnostics? {
-    totalFrames++
-    statusCounts[status] = statusCounts.getValue(status) + 1L
+    totalFrames = incrementSaturated(totalFrames)
+    statusCounts[status] = incrementSaturated(statusCounts.getValue(status))
+    val duration = decodeMillis.coerceAtLeast(0L)
+    averageDecodeMillis += (duration.toDouble() - averageDecodeMillis) / totalFrames.toDouble()
+    maxDecodeMillis = maxOf(maxDecodeMillis, duration)
     val now = nowMillis.coerceAtLeast(lastObservedMillis)
     lastObservedMillis = now
+    val started = sessionStartedMillis ?: now.also { sessionStartedMillis = it }
     val previousSnapshot = lastSnapshotMillis
     if (previousSnapshot != null && now - previousSnapshot < 1000L) return null
     lastSnapshotMillis = now
@@ -32,13 +40,21 @@ internal class ScanDiagnosticsTracker {
       width = width.coerceAtLeast(0),
       height = height.coerceAtLeast(0),
       rotationDegrees = rotationDegrees,
-      decodeMillis = decodeMillis.coerceAtLeast(0L),
+      decodeMillis = duration,
       decodedCount = decoded,
       inWindowCount = inside,
       distinctInWindowCount = distinctInWindowCount.coerceIn(0, inside),
       status = status,
       totalFrames = totalFrames,
-      statusCounts = statusCounts.toMap()
+      statusCounts = statusCounts.toMap(),
+      mlKitMillis = metrics.mlKitMillis.coerceAtLeast(0L),
+      nativeMillis = metrics.nativeMillis.coerceAtLeast(0L),
+      mlKitCount = metrics.mlKitCount.coerceAtLeast(0),
+      nativeCount = metrics.nativeCount.coerceAtLeast(0),
+      averageDecodeMillis = averageDecodeMillis,
+      maxDecodeMillis = maxDecodeMillis,
+      sessionMillis = now - started,
+      nativeAvailable = metrics.nativeAvailable
     )
   }
 
@@ -47,5 +63,10 @@ internal class ScanDiagnosticsTracker {
     ScanFrameStatus.entries.forEach { statusCounts[it] = 0L }
     lastObservedMillis = 0L
     lastSnapshotMillis = null
+    sessionStartedMillis = null
+    averageDecodeMillis = 0.0
+    maxDecodeMillis = 0L
   }
+
+  private fun incrementSaturated(value: Long): Long = if (value == Long.MAX_VALUE) value else value + 1L
 }

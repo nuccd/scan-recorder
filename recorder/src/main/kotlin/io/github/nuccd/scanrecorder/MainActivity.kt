@@ -37,6 +37,7 @@ internal class MainActivity : AppCompatActivity() {
   private var snackbar: Snackbar? = null
   private lateinit var review: ScanReviewDialog
   private lateinit var cameraUi: ScannerCameraUi
+  private lateinit var tuningUi: TuningDiagnosticsUi
   private var squareFrame = false
   private val resizeFrame = Runnable { resizeScanWindow() }
 
@@ -57,6 +58,13 @@ internal class MainActivity : AppCompatActivity() {
     model.finishTxtExport(uri)
   }
 
+  private val tuningSettings = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+    // A fast return can resume this Activity without ever stopping it.
+    stopCamera()
+    applyTuningOptions()
+    startCameraIfReady()
+  }
+
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     binding = ActivityMainBinding.inflate(layoutInflater)
@@ -71,7 +79,12 @@ internal class MainActivity : AppCompatActivity() {
     model = ViewModelProvider(this)[RecorderViewModel::class.java]
     review = ScanReviewDialog(this, model::confirmScan, model::cancelScan)
     cameraUi = ScannerCameraUi(binding, savedInstanceState)
-    binding.scanner.setDiagnosticsListener(ScanDiagnosticsLog::write)
+    tuningUi = TuningDiagnosticsUi(this, binding)
+    tuningUi.configure(BuildConfig.TUNING_ENABLED, ::openTuning) { binding.scanner.resetDiagnostics() }
+    binding.scanner.setDiagnosticsListener { frame ->
+      ScanDiagnosticsLog.write(frame)
+      tuningUi.onFrame(frame)
+    }
     scanRequested = savedInstanceState?.getBoolean("scanning") ?: false
     squareFrame = savedInstanceState?.getBoolean("square_frame") ?: false
     setupFrameSelector()
@@ -161,6 +174,7 @@ internal class MainActivity : AppCompatActivity() {
     binding.scanButton.isEnabled = ready
     binding.addButton.isEnabled = ready
     binding.batchButton.isEnabled = ready
+    binding.tuningButton.isEnabled = ready
     binding.duplicatesSwitch.isEnabled = ready
     binding.records.isEnabled = ready
     binding.barcodeFrame.isEnabled = ready
@@ -203,6 +217,7 @@ internal class MainActivity : AppCompatActivity() {
       return
     }
     cameraActive = true
+    tuningUi.reset()
     cameraUi.setActive(model.state.value?.let { !it.working && it.pendingScan == null } == true)
     binding.scanButton.setText(R.string.pause_scan)
     binding.status.setText(R.string.camera_starting)
@@ -232,6 +247,19 @@ internal class MainActivity : AppCompatActivity() {
     scanRequested = false
     stopCamera()
     binding.status.setText(R.string.paused)
+  }
+
+  private fun openTuning() {
+    stopCamera()
+    tuningSettings.launch(Intent(this, TuningActivity::class.java))
+  }
+
+  private fun applyTuningOptions() {
+    if (BuildConfig.TUNING_ENABLED) {
+      val options = TuningSettingsStore(this).load()
+      binding.scanner.setTuningOptions(options)
+      tuningUi.setOptions(options)
+    }
   }
 
   private fun stopCamera() {
@@ -364,6 +392,7 @@ internal class MainActivity : AppCompatActivity() {
 
   override fun onStart() {
     super.onStart()
+    applyTuningOptions()
     foreground = true
     if (snapshot != null) {
       binding.status.setText(R.string.paused)

@@ -24,14 +24,14 @@ internal class ScanControlAdjustments {
   fun finish(token: Token): Boolean {
     if (active[token.operation] != token) return false
     active.remove(token.operation)
-    frameUnblocked.remove(token)
-    revision++
+    if (!frameUnblocked.remove(token)) revision++
     return true
   }
 
   /** Keeps the callback token alive while allowing freshly captured frames after a bounded wait. */
   fun allowFrames(token: Token): Boolean {
-    if (active[token.operation] != token || !frameUnblocked.add(token)) return false
+    val current = token.operation == Operation.FOCUS && active[token.operation] == token
+    if (!current || !frameUnblocked.add(token)) return false
     revision++
     return true
   }

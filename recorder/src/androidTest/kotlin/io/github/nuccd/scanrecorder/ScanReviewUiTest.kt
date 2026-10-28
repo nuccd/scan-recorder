@@ -17,6 +17,7 @@ import java.io.File
 
 internal class ScanReviewUiTest {
   private val instrumentation = InstrumentationRegistry.getInstrumentation()
+  private val appId = instrumentation.targetContext.packageName
   private lateinit var activity: MainActivity
   private lateinit var model: RecorderViewModel
   private var review: ScanReviewDialog? = null
@@ -44,7 +45,7 @@ internal class ScanReviewUiTest {
     val count = requireNotNull(model.state.value?.snapshot).records.size
     val value = "001234567890999"
     instrumentation.runOnMainSync { model.offerScan(value) }
-    assertEquals(value, node("io.github.nuccd.scanrecorder:id/scan_value").text.toString())
+    assertEquals(value, node("$appId:id/scan_value").text.toString())
     assertEquals("确认录入", node("android:id/button1").text.toString())
     assertEquals("取消录入", node("android:id/button2").text.toString())
     screenshot("review-confirmation.png")
@@ -79,9 +80,9 @@ internal class ScanReviewUiTest {
   @Test
   fun batchDeletionIsVisibleAndCancellingKeepsTheBatchAndRecords() {
     val before = requireNotNull(model.state.value?.snapshot)
-    node("io.github.nuccd.scanrecorder:id/batch_button").performAction(AccessibilityNodeInfo.ACTION_CLICK)
-    assertEquals("删除当前批次", node("io.github.nuccd.scanrecorder:id/delete_batch_button").text.toString())
-    node("io.github.nuccd.scanrecorder:id/delete_batch_button").performAction(AccessibilityNodeInfo.ACTION_CLICK)
+    node("$appId:id/batch_button").performAction(AccessibilityNodeInfo.ACTION_CLICK)
+    assertEquals("删除当前批次", node("$appId:id/delete_batch_button").text.toString())
+    node("$appId:id/delete_batch_button").performAction(AccessibilityNodeInfo.ACTION_CLICK)
     val message = node("android:id/message").text.toString()
     assertTrue(message.contains(before.batch.name))
     assertTrue(message.contains("${before.records.size} 条记录"))

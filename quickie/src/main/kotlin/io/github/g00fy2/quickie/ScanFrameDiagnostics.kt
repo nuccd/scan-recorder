@@ -17,6 +17,7 @@ public enum class ScanFrameStatus {
  * Frame metadata and cumulative session counters, without barcode contents.
  * [width] and [height] describe the analysis buffer before [rotationDegrees] is applied.
  * [decodeMillis] measures processing by both engines through the merged frame callback.
+ * Engine timings and counts describe the published frame; average and maximum include every session frame.
  * [statusCounts] includes every [ScanFrameStatus], including stages not observed in this session.
  */
 @Suppress("LongParameterList")
@@ -30,5 +31,13 @@ public data class ScanFrameDiagnostics(
   public val distinctInWindowCount: Int,
   public val status: ScanFrameStatus,
   public val totalFrames: Long,
-  public val statusCounts: Map<ScanFrameStatus, Long>
+  public val statusCounts: Map<ScanFrameStatus, Long>,
+  public val mlKitMillis: Long = 0,
+  public val nativeMillis: Long = 0,
+  public val mlKitCount: Int = 0,
+  public val nativeCount: Int = 0,
+  public val averageDecodeMillis: Double = 0.0,
+  public val maxDecodeMillis: Long = 0,
+  public val sessionMillis: Long = 0,
+  public val nativeAvailable: Boolean = true
 )

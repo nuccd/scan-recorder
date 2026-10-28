@@ -28,6 +28,23 @@
       <SeekBar android:id="@+id/zoom_slider" android:layout_width="0dp" android:layout_height="match_parent"
           android:layout_weight="1" android:contentDescription="@string/zoom_description" android:enabled="false" />
     </LinearLayout>
+    <LinearLayout android:id="@+id/tuning_panel" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical" android:visibility="gone">
+      <TextView android:id="@+id/tuning_diagnostics" android:layout_width="0dp" android:layout_height="wrap_content"
+          android:layout_weight="1"
+          android:textSize="12sp" android:maxLines="3" android:accessibilityLiveRegion="polite"
+          android:text="@string/tuning_diagnostics_waiting" />
+      <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content">
+        <com.google.android.material.button.MaterialButton android:id="@+id/tuning_copy_button"
+            style="@style/Widget.Material3.Button.TextButton" android:layout_width="56dp"
+            android:layout_height="48dp" android:paddingStart="0dp" android:paddingEnd="0dp"
+            android:textSize="11sp" android:text="@string/tuning_copy_diagnostics" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/tuning_reset_button"
+            style="@style/Widget.Material3.Button.TextButton" android:layout_width="56dp"
+            android:layout_height="48dp" android:paddingStart="0dp" android:paddingEnd="0dp"
+            android:textSize="11sp" android:text="@string/tuning_reset_diagnostics" />
+      </LinearLayout>
+    </LinearLayout>
     <TextView android:id="@+id/status" android:layout_width="match_parent" android:layout_height="wrap_content"
         android:paddingTop="8dp" android:paddingBottom="4dp" android:accessibilityLiveRegion="polite"
         android:text="@string/loading" android:textAppearance="@style/TextAppearance.Material3.BodySmall"
@@ -52,6 +69,9 @@
       <com.google.android.material.button.MaterialButton android:id="@+id/batch_button"
           style="@style/Widget.Material3.Button.TextButton" android:layout_width="wrap_content"
           android:layout_height="wrap_content" android:text="@string/batches" />
+      <com.google.android.material.button.MaterialButton android:id="@+id/tuning_button"
+          style="@style/Widget.Material3.Button.TextButton" android:layout_width="wrap_content"
+          android:layout_height="wrap_content" android:text="@string/tuning_open_settings" android:visibility="gone" />
     </LinearLayout>
     <TextView android:id="@+id/counts" android:layout_width="match_parent" android:layout_height="wrap_content"
         android:textAppearance="@style/TextAppearance.Material3.TitleSmall" />

@@ -28,7 +28,6 @@ internal class CameraControlsIntegrationTest {
   private val instrumentation = InstrumentationRegistry.getInstrumentation()
   private lateinit var activity: MainActivity
   private lateinit var scanner: ContinuousScannerView
-  private var permissionGranted = false
 
   @Volatile private var zoom: ScanZoomState? = null
 
@@ -41,8 +40,7 @@ internal class CameraControlsIntegrationTest {
   @Before
   fun launchCamera() {
     val context = instrumentation.targetContext
-    permissionGranted = context.checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
-    if (!permissionGranted) {
+    if (context.checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
       shell("pm grant ${context.packageName} android.permission.CAMERA")
     }
     waitFor("Camera permission was not granted") {
@@ -70,10 +68,7 @@ internal class CameraControlsIntegrationTest {
       if (::scanner.isInitialized) scanner.release()
       if (::activity.isInitialized) activity.finish()
     }
-    if (!permissionGranted) {
-      val command = "pm revoke ${instrumentation.targetContext.packageName} android.permission.CAMERA"
-      shell(command)
-    }
+    // Revoking CAMERA here kills the process that is still running the remaining instrumentation tests.
   }
 
   @Test

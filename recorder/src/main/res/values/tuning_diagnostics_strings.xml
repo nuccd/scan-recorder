@@ -1,0 +1,22 @@
+<resources>
+  <string name="tuning_open_settings">调优</string>
+  <string name="tuning_copy_diagnostics">复制诊断</string>
+  <string name="tuning_reset_diagnostics">清零统计</string>
+  <string name="tuning_diagnostics_waiting">请开始扫码，查看本次会话的帧处理统计。</string>
+  <string name="tuning_diagnostics_compact">%1$d×%2$d r%3$d · 帧%4$dms 均%5$.0f 峰%6$d\nML %7$s · 原生 %8$s\n%9$s · 累计%10$d帧</string>
+  <string name="tuning_engine_measurement">%1$dms/%2$d码</string>
+  <string name="tuning_engine_disabled">关闭</string>
+  <string name="tuning_engine_unavailable">不可用</string>
+  <string name="tuning_report_title">扫码调优诊断</string>
+  <string name="tuning_report_copied">已复制诊断，不含扫码内容</string>
+  <string name="tuning_report_timing_note">耗时为单帧处理至合并回调的时间，并非一次扫码的完整识别耗时；两个引擎的执行可能重叠，不能将两者耗时相加。</string>
+  <string name="tuning_stage_transform">等待相机坐标</string>
+  <string name="tuning_stage_no_decode">本帧未解码</string>
+  <string name="tuning_stage_outside">已解码但在框外</string>
+  <string name="tuning_stage_multiple">框内多个不同内容</string>
+  <string name="tuning_stage_stability">等待多帧一致</string>
+  <string name="tuning_stage_reported">本码已触发</string>
+  <string name="tuning_stage_review">等待录入确认</string>
+  <string name="tuning_stage_delivered">已提交待确认</string>
+  <string name="tuning_stage_adjusting">相机调整中</string>
+</resources>

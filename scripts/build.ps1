@@ -1,5 +1,5 @@
 param(
-  [string[]]$Tasks = @(':recorder:assembleBundledDebug'),
+  [string[]]$Tasks = @(':recorder:assembleBundledTuning'),
   [string]$JdkHome
 )
 
