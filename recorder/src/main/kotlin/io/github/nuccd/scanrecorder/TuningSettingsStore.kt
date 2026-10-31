@@ -27,7 +27,8 @@ internal class TuningSettingsStore(context: Context) {
       nativeTryInvert = preferences.getBoolean("invert", baseline.nativeTryInvert),
       nativeTryDownscale = preferences.getBoolean("downscale", baseline.nativeTryDownscale),
       nativeInvertFallback = preferences.getBoolean("invert_fallback", baseline.nativeInvertFallback),
-      nativeMinLineCount = preferences.getInt("lines", baseline.nativeMinLineCount)
+      nativeMinLineCount = preferences.getInt("lines", baseline.nativeMinLineCount),
+      defaultZoomRatio = preferences.getFloat("default_zoom", baseline.defaultZoomRatio)
     )
   }.getOrElse { ScanTuningOptions() }
 
@@ -47,6 +48,7 @@ internal class TuningSettingsStore(context: Context) {
       putBoolean("downscale", options.nativeTryDownscale)
       putBoolean("invert_fallback", options.nativeInvertFallback)
       putInt("lines", options.nativeMinLineCount)
+      putFloat("default_zoom", options.defaultZoomRatio)
     }
   }
 }

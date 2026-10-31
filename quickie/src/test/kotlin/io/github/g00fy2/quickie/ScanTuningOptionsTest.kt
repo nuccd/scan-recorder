@@ -11,6 +11,7 @@ internal class ScanTuningOptionsTest {
   @Test
   fun `default options preserve the stable evidence and analysis defaults`() {
     val options = ScanTuningOptions()
+    assertEquals(2.3f, options.defaultZoomRatio)
     assertEquals(3, options.minimumFrames)
     assertEquals(200L, options.minimumMillis)
     assertEquals(150L, options.maximumGapMillis)
@@ -71,7 +72,11 @@ internal class ScanTuningOptionsTest {
       { ScanTuningOptions(maximumObservationMillis = 199) },
       { ScanTuningOptions(minimumMillis = 700, maximumObservationMillis = 600) },
       { ScanTuningOptions(focusWaitMillis = -1) },
-      { ScanTuningOptions(nativeMinLineCount = 6) }
+      { ScanTuningOptions(nativeMinLineCount = 6) },
+      { ScanTuningOptions(defaultZoomRatio = 0.9f) },
+      { ScanTuningOptions(defaultZoomRatio = 10.1f) },
+      { ScanTuningOptions(defaultZoomRatio = Float.NaN) },
+      { ScanTuningOptions(defaultZoomRatio = Float.POSITIVE_INFINITY) }
     )
     invalid.forEach { create -> assertThrows(IllegalArgumentException::class.java) { create() } }
     assertThrows(IllegalArgumentException::class.java) {

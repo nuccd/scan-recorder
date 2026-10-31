@@ -12,7 +12,7 @@ public enum class ScanResolution(public val width: Int, public val height: Int) 
   FULL_HD(1920, 1080)
 }
 
-/** Experimental parameters; defaults reproduce the 0.4.1 baseline and never bypass result confirmation. */
+/** Recognition defaults retain the 0.4.1 settings, with 2.3x default zoom and mandatory result confirmation. */
 @Suppress("LongParameterList")
 public data class ScanTuningOptions(
   public val decoderMode: ScanDecoderMode = ScanDecoderMode.COMBINED,
@@ -28,7 +28,8 @@ public data class ScanTuningOptions(
   public val nativeTryInvert: Boolean = true,
   public val nativeTryDownscale: Boolean = false,
   public val nativeInvertFallback: Boolean = true,
-  public val nativeMinLineCount: Int = 2
+  public val nativeMinLineCount: Int = 2,
+  public val defaultZoomRatio: Float = 2.3f
 ) {
   init {
     require(minimumFrames in 1..10) { "minimumFrames must be 1..10" }
@@ -39,6 +40,7 @@ public data class ScanTuningOptions(
     }
     require(focusWaitMillis in 0L..1000L) { "focusWaitMillis must be 0..1000" }
     require(nativeMinLineCount in 1..5) { "nativeMinLineCount must be 1..5" }
+    require(defaultZoomRatio.isFinite() && defaultZoomRatio in 1f..10f) { "defaultZoomRatio must be finite and 1..10" }
     require(decoderMode != ScanDecoderMode.NATIVE || formatScope != ScanFormatScope.QR) {
       "Native decoding does not support QR codes"
     }

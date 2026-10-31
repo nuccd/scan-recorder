@@ -14,10 +14,6 @@ internal class TuningActivity : AppCompatActivity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-    if (!BuildConfig.TUNING_ENABLED) {
-      finish()
-      return
-    }
     val binding = ActivityTuningBinding.inflate(layoutInflater)
     setContentView(binding.root)
     WindowCompat.setDecorFitsSystemWindows(window, false)

@@ -78,9 +78,10 @@ internal class MainActivity : AppCompatActivity() {
     }
     model = ViewModelProvider(this)[RecorderViewModel::class.java]
     review = ScanReviewDialog(this, model::confirmScan, model::cancelScan)
-    cameraUi = ScannerCameraUi(binding, savedInstanceState)
+    val defaultZoom = TuningSettingsStore(this).load().defaultZoomRatio
+    cameraUi = ScannerCameraUi(binding, savedInstanceState, initialZoomRatio = defaultZoom)
     tuningUi = TuningDiagnosticsUi(this, binding)
-    tuningUi.configure(BuildConfig.TUNING_ENABLED, ::openTuning) { binding.scanner.resetDiagnostics() }
+    tuningUi.configure(::openTuning) { binding.scanner.resetDiagnostics() }
     binding.scanner.setDiagnosticsListener { frame ->
       ScanDiagnosticsLog.write(frame)
       tuningUi.onFrame(frame)
@@ -255,11 +256,10 @@ internal class MainActivity : AppCompatActivity() {
   }
 
   private fun applyTuningOptions() {
-    if (BuildConfig.TUNING_ENABLED) {
-      val options = TuningSettingsStore(this).load()
-      binding.scanner.setTuningOptions(options)
-      tuningUi.setOptions(options)
-    }
+    val options = TuningSettingsStore(this).load()
+    binding.scanner.setTuningOptions(options)
+    cameraUi.setDefaultZoomRatio(options.defaultZoomRatio)
+    tuningUi.setOptions(options)
   }
 
   private fun stopCamera() {

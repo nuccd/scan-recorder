@@ -60,28 +60,28 @@ internal class TuningForm(private val binding: ActivityTuningBinding) {
       options.nativeInvertFallback
     )
     switches.zip(flags).forEach { (control, checked) -> control.isChecked = checked }
+    binding.tuningDefaultZoom.editText?.setText(options.defaultZoomRatio.toString())
+    binding.tuningDefaultZoom.error = null
     binding.tuningNotice.setText(R.string.tuning_draft_notice)
     binding.tuningError.text = ""
   }
 
   fun read(): ScanTuningOptions? {
     val values = numbers.map(::readNumber)
-    val minimum = values[1]
-    val window = values[3]
-    val invalidWindow = minimum != null && window != null && window < minimum
-    if (invalidWindow) binding.tuningObservationMs.error = binding.root.context.getString(R.string.tuning_window_error)
+    val zoom = readZoomRatio()
+    val windowValid = validWindow(values)
     val unsupported = binding.tuningDecoder.selectedItemPosition == ScanDecoderMode.NATIVE.ordinal &&
       binding.tuningFormats.selectedItemPosition == ScanFormatScope.QR.ordinal
-    val numericValid = values.none { it == null } && !invalidWindow
+    val numericValid = values.none { it == null } && windowValid && zoom != null
     binding.tuningError.text = when {
       unsupported -> binding.root.context.getString(R.string.tuning_native_qr_error)
       !numericValid -> binding.root.context.getString(R.string.tuning_input_error)
       else -> ""
     }
-    return if (numericValid && !unsupported) options(values.map { requireNotNull(it) }) else null
+    return if (numericValid && !unsupported) options(values.map { requireNotNull(it) }, requireNotNull(zoom)) else null
   }
 
-  private fun options(values: List<Long>): ScanTuningOptions = ScanTuningOptions(
+  private fun options(values: List<Long>, zoom: Float): ScanTuningOptions = ScanTuningOptions(
     decoderMode = ScanDecoderMode.entries[binding.tuningDecoder.selectedItemPosition],
     formatScope = ScanFormatScope.entries[binding.tuningFormats.selectedItemPosition],
     resolution = ScanResolution.entries[binding.tuningResolution.selectedItemPosition],
@@ -95,7 +95,8 @@ internal class TuningForm(private val binding: ActivityTuningBinding) {
     nativeTryRotate = binding.tuningRotate.isChecked,
     nativeTryInvert = binding.tuningInvert.isChecked,
     nativeTryDownscale = binding.tuningDownscale.isChecked,
-    nativeInvertFallback = binding.tuningExplicitInvert.isChecked
+    nativeInvertFallback = binding.tuningExplicitInvert.isChecked,
+    defaultZoomRatio = zoom
   )
 
   fun saveDraft(): Bundle = Bundle().apply {
@@ -103,6 +104,7 @@ internal class TuningForm(private val binding: ActivityTuningBinding) {
     switches.forEachIndexed { index, control -> putBoolean("switch_$index", control.isChecked) }
     selectors.forEachIndexed { index, selector -> putInt("selector_$index", selector.selectedItemPosition) }
     putString("notice", binding.tuningNotice.text.toString())
+    putString("default_zoom_draft", binding.tuningDefaultZoom.editText?.text.toString())
   }
 
   fun restoreDraft(state: Bundle) {
@@ -112,6 +114,22 @@ internal class TuningForm(private val binding: ActivityTuningBinding) {
       selector.setSelection(state.getInt("selector_$index").coerceIn(0, selector.count - 1))
     }
     binding.tuningNotice.text = state.getString("notice")
+    state.getString("default_zoom_draft")?.let { binding.tuningDefaultZoom.editText?.setText(it) }
+  }
+
+  private fun readZoomRatio(): Float? {
+    val value = binding.tuningDefaultZoom.editText?.text?.toString()?.trim()?.toFloatOrNull()
+    val valid = value != null && value.isFinite() && value in 1f..10f
+    binding.tuningDefaultZoom.error = if (valid) null else binding.root.context.getString(R.string.tuning_zoom_error)
+    return value.takeIf { valid }
+  }
+
+  private fun validWindow(values: List<Long?>): Boolean {
+    val minimum = values[1]
+    val window = values[3]
+    val valid = minimum == null || window == null || window >= minimum
+    if (!valid) binding.tuningObservationMs.error = binding.root.context.getString(R.string.tuning_window_error)
+    return valid
   }
 
   private fun readNumber(field: NumberField): Long? {

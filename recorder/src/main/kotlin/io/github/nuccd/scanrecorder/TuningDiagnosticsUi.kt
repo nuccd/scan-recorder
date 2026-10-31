@@ -13,20 +13,17 @@ import io.github.g00fy2.quickie.ScanFrameStatus
 import io.github.g00fy2.quickie.ScanTuningOptions
 import io.github.nuccd.scanrecorder.databinding.ActivityMainBinding
 
-/** Tuning-only metadata. Reports never access scanned values or the records database. */
+/** Scanner metadata. Reports never access scanned values or the records database. */
 internal class TuningDiagnosticsUi(
   private val activity: AppCompatActivity,
   private val binding: ActivityMainBinding
 ) {
-  private var enabled = false
   private var options = ScanTuningOptions()
   private var latest: ScanFrameDiagnostics? = null
 
-  fun configure(enabled: Boolean, onOpenSettings: () -> Unit, onReset: () -> Unit) {
-    this.enabled = enabled
-    val visibility = if (enabled) View.VISIBLE else View.GONE
-    binding.tuningButton.visibility = visibility
-    binding.tuningPanel.visibility = visibility
+  fun configure(onOpenSettings: () -> Unit, onReset: () -> Unit) {
+    binding.tuningButton.visibility = View.VISIBLE
+    binding.tuningPanel.visibility = View.VISIBLE
     binding.tuningButton.setOnClickListener { onOpenSettings() }
     binding.tuningCopyButton.setOnClickListener { copyReport() }
     binding.tuningResetButton.setOnClickListener {
@@ -43,10 +40,8 @@ internal class TuningDiagnosticsUi(
   }
 
   fun onFrame(frame: ScanFrameDiagnostics) {
-    if (enabled) {
-      latest = frame
-      render(frame)
-    }
+    latest = frame
+    render(frame)
   }
 
   fun reset() {

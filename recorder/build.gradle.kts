@@ -6,9 +6,8 @@ android {
   namespace = "io.github.nuccd.scanrecorder"
   defaultConfig {
     applicationId = "io.github.nuccd.scanrecorder"
-    versionCode = 8
-    versionName = "0.4.2"
-    buildConfigField("boolean", "TUNING_ENABLED", "false")
+    versionCode = 9
+    versionName = "0.4.3"
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
   buildFeatures {
@@ -16,13 +15,6 @@ android {
     buildConfig = true
   }
   buildTypes {
-    create("tuning") {
-      initWith(getByName("debug"))
-      applicationIdSuffix = ".tuning"
-      versionNameSuffix = "-tuning"
-      matchingFallbacks += "debug"
-      buildConfigField("boolean", "TUNING_ENABLED", "true")
-    }
     getByName("release") {
       isMinifyEnabled = true
       isShrinkResources = true
@@ -36,7 +28,6 @@ android {
   testOptions {
     unitTests.isReturnDefaultValues = true
   }
-  testBuildType = "tuning"
 }
 
 dependencies {

@@ -4,6 +4,7 @@ import android.content.ClipboardManager
 import android.content.Intent
 import android.os.SystemClock
 import android.view.View
+import android.widget.EditText
 import android.widget.Spinner
 import androidx.test.platform.app.InstrumentationRegistry
 import io.github.g00fy2.quickie.ScanDecoderMode
@@ -15,7 +16,6 @@ import io.github.nuccd.scanrecorder.databinding.ActivityMainBinding
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
-import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -29,7 +29,6 @@ internal class TuningMainUiTest {
 
   @Before
   fun launch() {
-    assumeTrue(BuildConfig.TUNING_ENABLED)
     store = TuningSettingsStore(instrumentation.targetContext)
     original = store.load()
     store.save(ScanTuningOptions())
@@ -38,6 +37,9 @@ internal class TuningMainUiTest {
     activity = instrumentation.startActivitySync(intent) as MainActivity
     instrumentation.runOnMainSync { binding = ActivityMainBinding.bind(activity.findViewById(R.id.root)) }
     waitFor { binding.tuningButton.isEnabled }
+    instrumentation.runOnMainSync {
+      assertEquals(activity.getString(R.string.zoom_ratio, 2.3f), binding.zoomValue.text.toString())
+    }
   }
 
   @After
@@ -69,6 +71,7 @@ internal class TuningMainUiTest {
       instrumentation.runOnMainSync {
         settings.findViewById<Spinner>(R.id.tuning_decoder).setSelection(ScanDecoderMode.ML_KIT.ordinal)
         settings.findViewById<Spinner>(R.id.tuning_resolution).setSelection(ScanResolution.FULL_HD.ordinal)
+        settings.findViewById<EditText>(R.id.tuning_default_zoom_input).setText("3.25")
         settings.findViewById<View>(R.id.tuning_apply).performClick()
       }
       waitFor { activity.hasWindowFocus() && settings.isDestroyed }
@@ -77,6 +80,8 @@ internal class TuningMainUiTest {
         val report = clipboard()
         assertTrue(report.contains("decoderMode=ML_KIT"))
         assertTrue(report.contains("resolution=FULL_HD"))
+        assertTrue(report.contains("defaultZoomRatio=3.25"))
+        assertEquals(activity.getString(R.string.zoom_ratio, 3.25f), binding.zoomValue.text.toString())
       }
     } finally {
       instrumentation.runOnMainSync { settings.finish() }
@@ -88,7 +93,9 @@ internal class TuningMainUiTest {
     instrumentation.runOnMainSync {
       var resets = 0
       val ui = TuningDiagnosticsUi(activity, binding)
-      ui.configure(true, {}) { resets++ }
+      ui.configure({}) { resets++ }
+      assertEquals(View.VISIBLE, binding.tuningButton.visibility)
+      assertEquals(View.VISIBLE, binding.tuningPanel.visibility)
       ui.onFrame(
         ScanFrameDiagnostics(
           width = 1280,

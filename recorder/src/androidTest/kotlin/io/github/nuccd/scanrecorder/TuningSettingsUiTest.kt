@@ -16,7 +16,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
-import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -30,7 +29,6 @@ internal class TuningSettingsUiTest {
 
   @Before
   fun prepare() {
-    assumeTrue(BuildConfig.TUNING_ENABLED)
     store = TuningSettingsStore(instrumentation.targetContext)
     original = store.load()
     store.save(ScanTuningOptions())
@@ -55,6 +53,7 @@ internal class TuningSettingsUiTest {
       input(R.id.tuning_observation_input, "900")
       input(R.id.tuning_focus_input, "400")
       input(R.id.tuning_lines_input, "3")
+      input(R.id.tuning_default_zoom_input, "2.75")
       checked(R.id.tuning_harder, false)
       checked(R.id.tuning_rotate, false)
       checked(R.id.tuning_invert, false)
@@ -77,7 +76,8 @@ internal class TuningSettingsUiTest {
         nativeTryInvert = false,
         nativeTryDownscale = true,
         nativeInvertFallback = false,
-        nativeMinLineCount = 3
+        nativeMinLineCount = 3,
+        defaultZoomRatio = 2.75f
       ),
       store.load()
     )
@@ -85,13 +85,14 @@ internal class TuningSettingsUiTest {
   }
 
   @Test
-  fun restoringBaselineOnlyChangesTheDraftAndCancellationPreservesTheSavedOptions() {
-    val before = ScanTuningOptions(minimumFrames = 5, nativeTryDownscale = true)
+  fun restoringDefaultsOnlyChangesTheDraftAndCancellationPreservesTheSavedOptions() {
+    val before = ScanTuningOptions(minimumFrames = 5, nativeTryDownscale = true, defaultZoomRatio = 4.5f)
     store.save(before)
     launch()
     onMain {
       click(R.id.tuning_reset)
       assertEquals("3", activity.findViewById<EditText>(R.id.tuning_frames_input).text.toString())
+      assertEquals("2.3", activity.findViewById<EditText>(R.id.tuning_default_zoom_input).text.toString())
       assertTrue(activity.findViewById<TextView>(R.id.tuning_notice).text.toString().contains("尚未应用"))
       assertEquals(before, store.load())
       click(R.id.tuning_cancel)
@@ -125,11 +126,56 @@ internal class TuningSettingsUiTest {
   }
 
   @Test
+  fun nonFiniteOutOfRangeOrMissingMagnificationCannotBeApplied() {
+    launch()
+    onMain {
+      // Supply raw pasted values so numeric keyboard filtering cannot disguise an invalid value.
+      activity.findViewById<EditText>(R.id.tuning_default_zoom_input).keyListener = null
+      for (value in listOf("", "NaN", "Infinity", "-Infinity", "1e100", "abc", "0.9", "10.1", "-1")) {
+        input(R.id.tuning_default_zoom_input, value)
+        click(R.id.tuning_apply)
+        assertNotNull(activity.findViewById<TextInputLayout>(R.id.tuning_default_zoom).error)
+        assertFalse(activity.isFinishing)
+        assertEquals(ScanTuningOptions(), store.load())
+      }
+      input(R.id.tuning_default_zoom_input, "3.125")
+      click(R.id.tuning_apply)
+    }
+    assertEquals(3.125f, store.load().defaultZoomRatio, 0f)
+    assertTrue(activity.isFinishing)
+  }
+
+  @Test
+  fun olderPreferencesWithoutMagnificationKeepAllExistingParameters() {
+    val previous = ScanTuningOptions(
+      decoderMode = ScanDecoderMode.ML_KIT,
+      formatScope = ScanFormatScope.LINEAR,
+      minimumFrames = 7,
+      focusWaitMillis = 450,
+      nativeTryInvert = false,
+      defaultZoomRatio = 4.25f
+    )
+    store.save(previous)
+    val preferences = instrumentation.targetContext.getSharedPreferences("scan_tuning", 0)
+    preferences.edit().remove("default_zoom").apply()
+    val expected = previous.copy(defaultZoomRatio = 2.3f)
+    assertEquals(expected, store.load())
+    launch()
+    onMain {
+      assertEquals("2.3", activity.findViewById<EditText>(R.id.tuning_default_zoom_input).text.toString())
+      click(R.id.tuning_apply)
+    }
+    assertEquals(expected, store.load())
+    assertEquals(2.3f, preferences.getFloat("default_zoom", 0f), 0f)
+  }
+
+  @Test
   fun recreationRetainsUnappliedAndInvalidDraftValues() {
     launch()
     onMain {
       input(R.id.tuning_frames_input, "")
       input(R.id.tuning_gap_input, "500")
+      input(R.id.tuning_default_zoom_input, "3.25")
       select(R.id.tuning_decoder, ScanDecoderMode.ML_KIT.ordinal)
       checked(R.id.tuning_explicit_invert, false)
     }
@@ -141,6 +187,7 @@ internal class TuningSettingsUiTest {
     onMain {
       assertEquals("", activity.findViewById<EditText>(R.id.tuning_frames_input).text.toString())
       assertEquals("500", activity.findViewById<EditText>(R.id.tuning_gap_input).text.toString())
+      assertEquals("3.25", activity.findViewById<EditText>(R.id.tuning_default_zoom_input).text.toString())
       assertEquals(
         ScanDecoderMode.ML_KIT.ordinal,
         activity.findViewById<Spinner>(R.id.tuning_decoder).selectedItemPosition
@@ -159,6 +206,12 @@ internal class TuningSettingsUiTest {
     assertEquals(ScanTuningOptions(), store.load())
     store.save(ScanTuningOptions(minimumFrames = 7))
     preferences.edit().putString("frames", "bad_type").apply()
+    assertEquals(ScanTuningOptions(), store.load())
+    store.save(ScanTuningOptions(minimumFrames = 7))
+    preferences.edit().putFloat("default_zoom", Float.NaN).apply()
+    assertEquals(ScanTuningOptions(), store.load())
+    store.save(ScanTuningOptions(minimumFrames = 7))
+    preferences.edit().putFloat("default_zoom", Float.POSITIVE_INFINITY).apply()
     assertEquals(ScanTuningOptions(), store.load())
   }
 

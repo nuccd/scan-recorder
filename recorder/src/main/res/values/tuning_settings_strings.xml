@@ -1,10 +1,13 @@
 <resources>
   <string name="tuning_title">扫码调优设置</string>
-  <string name="tuning_draft_notice">修改先保存在本页草稿，点击“应用并返回”后生效；取消不保存。默认值为 0.4.1 基线。</string>
-  <string name="tuning_baseline_draft">草稿已恢复 0.4.1 基线，尚未应用。点击“应用并返回”后才会保存。</string>
+  <string name="tuning_draft_notice">修改先保存在本页草稿，点击“应用并返回”后生效；取消不保存。识别参数默认沿用 0.4.1，默认变焦倍率为 2.3×。</string>
+  <string name="tuning_baseline_draft">草稿已恢复默认参数，尚未应用。识别参数沿用 0.4.1，默认倍率 2.3×；点击“应用并返回”后才会保存。</string>
   <string name="tuning_decoder_label">识别引擎（默认：双引擎）</string>
   <string name="tuning_formats_label">识别码制（默认：全部；与白框形状分别设置）</string>
   <string name="tuning_resolution_label">请求分析分辨率（默认：720p；实际以相机协商为准）</string>
+  <string name="tuning_zoom_label">默认变焦倍率（×）</string>
+  <string name="tuning_zoom_help">范围 1.0–10.0，可输入小数；默认 2.3×。实际倍率按相机支持范围裁剪。</string>
+  <string name="tuning_zoom_error">请输入 1.0–10.0 范围内的有限数字，可使用小数</string>
   <string-array name="tuning_decoder_values">
     <item>双引擎：ML Kit + 原生一维码</item>
     <item>仅 ML Kit</item>
@@ -38,7 +41,7 @@
   <string name="tuning_explicit_invert_label">显式反色补扫 invertFallback（默认开启）</string>
   <string name="tuning_lines_label">原生最少扫描线数（条）</string>
   <string name="tuning_lines_help">范围 1–5；默认 2。</string>
-  <string name="tuning_reset">恢复 0.4.1 基线草稿</string>
+  <string name="tuning_reset">恢复默认参数草稿</string>
   <string name="tuning_cancel">取消并返回</string>
   <string name="tuning_apply">应用并返回</string>
   <string name="tuning_number_error">请输入 %1$d–%2$d 范围内的整数</string>
