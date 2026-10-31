@@ -9,7 +9,7 @@ import java.util.UUID
 /** Accessed only by the ViewModel's single worker. Every list mutation is transactional. */
 @Suppress("TooManyFunctions") // CRUD operations share a single database and transaction boundary.
 internal class RecorderStore(context: Context, databaseName: String = "scan-recorder.db") :
-  SQLiteOpenHelper(context, databaseName, null, 1) {
+  SQLiteOpenHelper(context, databaseName, null, 2) {
   override fun onConfigure(db: SQLiteDatabase) {
     db.setForeignKeyConstraintsEnabled(true)
   }
@@ -21,14 +21,30 @@ internal class RecorderStore(context: Context, databaseName: String = "scan-reco
     )
     db.execSQL(
       "CREATE TABLE records (id TEXT PRIMARY KEY, batch_id TEXT NOT NULL REFERENCES batches(id) ON DELETE CASCADE, " +
-        "value TEXT NOT NULL, created_at INTEGER NOT NULL, position INTEGER NOT NULL)"
+        "value TEXT NOT NULL, created_at INTEGER NOT NULL, position INTEGER NOT NULL, " +
+        "delivery TEXT NOT NULL DEFAULT 'NONE')"
     )
     db.execSQL("CREATE INDEX records_order ON records(batch_id, position)")
     db.execSQL("CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
   }
 
   override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-    error("Unsupported database upgrade: $oldVersion -> $newVersion")
+    check(oldVersion == 1 && newVersion == 2)
+    db.execSQL("ALTER TABLE records ADD COLUMN delivery TEXT NOT NULL DEFAULT 'NONE'")
+  }
+
+  fun recoverInterruptedDeliveries() {
+    writableDatabase.execSQL("UPDATE records SET delivery = 'UNCERTAIN' WHERE delivery = 'SENDING'")
+  }
+
+  fun setDelivery(batchId: String, id: String, delivery: KeyboardDelivery): RecorderSnapshot = transaction {
+    writableDatabase.update(
+      "records",
+      ContentValues().apply { put("delivery", delivery.name) },
+      "id = ? AND batch_id = ?",
+      arrayOf(id, batchId)
+    )
+    load("")
   }
 
   fun load(defaultName: String): RecorderSnapshot = transaction {
@@ -105,20 +121,32 @@ internal class RecorderStore(context: Context, databaseName: String = "scan-reco
     snapshot(batches().first { it.id == batchId })
   }
 
-  fun save(batchId: String, value: String, editingId: String? = null): Pair<RecorderSnapshot, Boolean> = transaction {
+  fun save(
+    batchId: String,
+    value: String,
+    editingId: String? = null,
+    keyboard: Boolean = false
+  ): Pair<RecorderSnapshot, Boolean> = transaction {
     val batch = batches().first { it.id == batchId }
     val existing = records(batchId)
     if (!RecordRules.canStore(existing, value, batch.allowDuplicates, editingId)) {
       snapshot(batch) to false
     } else {
       if (editingId == null) {
-        val record = ScanRecord(UUID.randomUUID().toString(), value, System.currentTimeMillis())
+        val delivery = if (keyboard) KeyboardProtocol.initial(value) else KeyboardDelivery.NONE
+        val record = ScanRecord(UUID.randomUUID().toString(), value, System.currentTimeMillis(), delivery)
         insert(batchId, nextPosition(batchId), record)
       } else {
         check(
           writableDatabase.update(
             "records",
-            ContentValues().apply { put("value", value) },
+            ContentValues().apply {
+              put("value", value)
+              val previous = existing.first { it.id == editingId }
+              if (previous.value != value && previous.delivery != KeyboardDelivery.NONE) {
+                put("delivery", KeyboardProtocol.initial(value).name)
+              }
+            },
             "id = ? AND batch_id = ?",
             arrayOf(editingId, batchId)
           ) == 1
@@ -130,11 +158,17 @@ internal class RecorderStore(context: Context, databaseName: String = "scan-reco
 
   fun delete(batchId: String, recordId: String): Pair<RecorderSnapshot, DeletedRecord> = transaction {
     val deleted = readableDatabase.rawQuery(
-      "SELECT id, value, created_at, position FROM records WHERE id = ? AND batch_id = ?",
+      "SELECT id, value, created_at, position, delivery FROM records WHERE id = ? AND batch_id = ?",
       arrayOf(recordId, batchId)
     ).use { cursor ->
       check(cursor.moveToFirst())
-      DeletedRecord(batchId, cursor.getLong(3), ScanRecord(cursor.getString(0), cursor.getString(1), cursor.getLong(2)))
+      val record = ScanRecord(
+        cursor.getString(0),
+        cursor.getString(1),
+        cursor.getLong(2),
+        KeyboardDelivery.valueOf(cursor.getString(4))
+      )
+      DeletedRecord(batchId, cursor.getLong(3), record)
     }
     writableDatabase.delete("records", "id = ? AND batch_id = ?", arrayOf(recordId, batchId))
     snapshot(batches().first { it.id == batchId }) to deleted
@@ -165,11 +199,20 @@ internal class RecorderStore(context: Context, databaseName: String = "scan-reco
   }
 
   private fun records(batchId: String): List<ScanRecord> = readableDatabase.rawQuery(
-    "SELECT id, value, created_at FROM records WHERE batch_id = ? ORDER BY position, rowid",
+      "SELECT id, value, created_at, delivery FROM records WHERE batch_id = ? ORDER BY position, rowid",
     arrayOf(batchId)
   ).use { cursor ->
     buildList {
-      while (cursor.moveToNext()) add(ScanRecord(cursor.getString(0), cursor.getString(1), cursor.getLong(2)))
+      while (cursor.moveToNext()) {
+        add(
+          ScanRecord(
+            cursor.getString(0),
+            cursor.getString(1),
+            cursor.getLong(2),
+            KeyboardDelivery.valueOf(cursor.getString(3))
+          )
+        )
+      }
     }
   }
 
@@ -206,6 +249,7 @@ internal class RecorderStore(context: Context, databaseName: String = "scan-reco
         put("value", record.value)
         put("created_at", record.createdAt)
         put("position", position)
+        put("delivery", record.delivery.name)
       }
     )
   }

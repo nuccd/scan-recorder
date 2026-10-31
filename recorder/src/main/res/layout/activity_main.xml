@@ -13,6 +13,9 @@
         style="@style/Widget.Material3.Button.TextButton" android:layout_width="wrap_content"
         android:layout_height="wrap_content" android:text="@string/tuning_open_settings" android:visibility="gone" />
   </LinearLayout>
+  <TextView android:id="@+id/keyboard_status" android:layout_width="match_parent" android:layout_height="wrap_content"
+      android:textAppearance="@style/TextAppearance.Material3.BodySmall" android:maxLines="2"
+      android:accessibilityLiveRegion="polite" android:visibility="gone" />
   <RadioGroup android:id="@+id/frame_selector" android:layout_width="match_parent"
       android:layout_height="wrap_content" android:orientation="horizontal">
     <RadioButton android:id="@+id/barcode_frame" android:layout_width="wrap_content"

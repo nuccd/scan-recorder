@@ -27,6 +27,9 @@ internal class RecordAdapter : BaseAdapter() {
     }
     binding.sequence.text = parent.context.getString(R.string.record_sequence, position + 1)
     binding.content.text = records[position].value
+    val delivery = records[position].delivery
+    binding.delivery.visibility = if (delivery == KeyboardDelivery.NONE) View.GONE else View.VISIBLE
+    if (delivery != KeyboardDelivery.NONE) binding.delivery.setText(delivery.label)
     return binding.root
   }
 }

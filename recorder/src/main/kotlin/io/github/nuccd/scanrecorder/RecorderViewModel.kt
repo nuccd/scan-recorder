@@ -57,9 +57,45 @@ internal class RecorderViewModel @JvmOverloads constructor(
   private var snapshot: RecorderSnapshot? = null
   private val pendingExport = AtomicFile(File(application.filesDir, "pending-export.txt"))
   private var pendingOperations = 0
+  private val keyboardSettings = KeyboardSettingsStore(application)
+  private val mutableKeyboard = MutableLiveData(KeyboardConnection.OFF)
+  val keyboardConnection: LiveData<KeyboardConnection> = mutableKeyboard
+  val keyboardEnabled: Boolean get() = keyboardSettings.enabled
+  private var keyboardForeground = false
+  private val keyboardBridge = KeyboardBridge(::reportKeyboard)
 
   init {
-    submit { publish(store.load(defaultBatchName())) }
+    submit {
+      store.recoverInterruptedDeliveries()
+      publish(store.load(defaultBatchName()))
+    }
+  }
+
+  fun refreshKeyboard(foreground: Boolean = keyboardForeground) {
+    keyboardForeground = foreground
+    keyboardBridge.setActive(foreground && keyboardEnabled)
+    reportKeyboard()
+  }
+
+  private fun reportKeyboard() {
+    main.post { mutableKeyboard.value = keyboardBridge.state }
+  }
+
+  fun sendToComputer(batchId: String, recordId: String) = submit {
+    val record = requireNotNull(snapshot).records.first { it.id == recordId }
+    if (keyboardEnabled) deliverRecord(batchId, record) else emit(RecorderEvent.Notice(R.string.keyboard_off))
+  }
+
+  private fun deliverRecord(batchId: String, record: ScanRecord) {
+    val result = if (!KeyboardProtocol.canSend(record.value)) {
+      KeyboardDelivery.BLOCKED
+    } else if (keyboardBridge.state != KeyboardConnection.CONNECTED) {
+      KeyboardDelivery.PENDING
+    } else {
+      publish(store.setDelivery(batchId, record.id, KeyboardDelivery.SENDING))
+      keyboardBridge.send(record.value)
+    }
+    publish(store.setDelivery(batchId, record.id, result), RecorderEvent.Notice(result.label))
   }
 
   /** Runs on the UI thread. Recognition alone never writes to the database. */
@@ -92,9 +128,11 @@ internal class RecorderViewModel @JvmOverloads constructor(
       emit(RecorderEvent.Duplicate)
     } else {
       submit {
-        val (updated, saved) = store.save(pending.batchId, pending.value)
+        val keyboard = keyboardEnabled
+        val (updated, saved) = store.save(pending.batchId, pending.value, keyboard = keyboard)
         val event = if (saved) RecorderEvent.Saved(updated.records.size, true) else RecorderEvent.Duplicate
         publish(updated, event, clearPending = true)
+        if (saved && keyboard) deliverRecord(pending.batchId, updated.records.last())
       }
     }
   }
@@ -123,13 +161,15 @@ internal class RecorderViewModel @JvmOverloads constructor(
   fun setDuplicates(id: String, allowed: Boolean) = submit { publish(store.setDuplicates(id, allowed)) }
 
   fun save(id: String, value: String, editingId: String? = null, scanned: Boolean = false) = submit {
-    val (updated, saved) = store.save(id, value, editingId)
+    val keyboard = scanned && editingId == null && keyboardEnabled
+    val (updated, saved) = store.save(id, value, editingId, keyboard)
     val event = when {
       !saved -> RecorderEvent.Duplicate
       editingId != null -> RecorderEvent.Notice(R.string.record_updated)
       else -> RecorderEvent.Saved(updated.records.size, scanned)
     }
     publish(updated, event)
+    if (saved && keyboard) deliverRecord(id, updated.records.last())
   }
 
   fun delete(batchId: String, recordId: String) = submit {
@@ -245,6 +285,7 @@ internal class RecorderViewModel @JvmOverloads constructor(
   }
 
   override fun onCleared() {
+    keyboardBridge.setActive(false)
     worker.execute { store.close() }
     worker.shutdown()
     super.onCleared()

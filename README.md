@@ -4,7 +4,7 @@
 
 使用与构建说明见 [扫码记录](docs/scan-recorder.md)。下面保留上游 quickie 的库文档。
 
-当前 0.4.4 为统一的「扫码记录」App，包名沿用 `io.github.nuccd.scanrecorder`；主扫码和调优页固定竖屏，横放手机不会切换到横屏。`main` 提供常规扫码、调优设置和诊断功能。右上角「调优」可修改识别参数及默认变焦倍率，初始为 2.3×，实际受相机支持范围限制。脚本默认构建 `bundledDebug`，设置、实验记录和构建命令见 [扫码调优实操手册](docs/scan-tuning.md)。
+当前 0.5.0 为统一的「扫码记录」App，包名沿用 `io.github.nuccd.scanrecorder`；扫码和设置页固定竖屏。首页「设置」包含默认关闭、记住选择的 USB 扫码枪模式，以及原有识别调优参数、默认 2.3× 变焦倍率。确认扫码后先保存，再由 Windows 接收程序输入原文并按 Enter；断线不自动补发，长按记录可手动发送。使用与构建见 [USB 扫码枪模式](docs/windows-receiver.md)，识别参数见 [扫码调优实操手册](docs/scan-tuning.md)。
 
 旧的独立调优 App（包名以 `.tuning` 结尾）及其数据仍保留，数据不会自动迁移到统一 App；安装统一 App 不会删除旧调优 App。
 

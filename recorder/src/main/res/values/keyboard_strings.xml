@@ -1,0 +1,18 @@
+<resources>
+  <string name="keyboard_mode">扫码枪模式（USB 电脑输入）</string>
+  <string name="keyboard_mode_help">首次默认关闭，记住你的选择；应用后生效。确认扫码后保存并输入电脑当前输入框，再按 Enter。主页保持前台，电脑运行接收程序。Excel 请先将录入列设为文本。断线不自动补发，长按记录可手动发送。</string>
+  <string name="recognition_settings">识别调优</string>
+  <string name="keyboard_off">扫码枪模式已关闭，请在设置中开启</string>
+  <string name="keyboard_waiting">扫码枪模式：等待电脑连接 · 长按记录可补发</string>
+  <string name="keyboard_connected">扫码枪模式：已连接 · 电脑输入原文并回车</string>
+  <string name="keyboard_paused">扫码枪模式：电脑已暂停输入</string>
+  <string name="keyboard_connection_error">扫码枪模式：连接服务不可用，请关闭后重新开启</string>
+  <string name="keyboard_pending">未发送 · 长按记录可发送到电脑</string>
+  <string name="keyboard_sending">正在发送到电脑</string>
+  <string name="keyboard_submitted">已提交电脑 · 请以电脑实际输入为准</string>
+  <string name="keyboard_uncertain">发送结果待核对 · 补发前请检查电脑，可能已输入部分内容</string>
+  <string name="keyboard_blocked">仅本机保存 · 含换行、控制字符或内容过长，未向电脑输入</string>
+  <string name="keyboard_send">发送到电脑</string>
+  <string name="keyboard_send_confirm">将以下已保存内容输入电脑当前输入框，并按 Enter？请先在电脑选好输入位置。\n\n%1$s</string>
+  <string name="keyboard_resend_confirm">这条记录可能已在电脑输入，继续发送可能重复。请先核对电脑并选好输入位置。\n\n%1$s</string>
+</resources>

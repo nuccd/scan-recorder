@@ -1,5 +1,5 @@
 <resources>
-  <string name="tuning_title">扫码调优设置</string>
+  <string name="tuning_title">设置</string>
   <string name="tuning_draft_notice">修改先保存在本页草稿，点击“应用并返回”后生效；取消不保存。识别参数默认沿用 0.4.1，默认变焦倍率为 2.3×。</string>
   <string name="tuning_baseline_draft">草稿已恢复默认参数，尚未应用。识别参数沿用 0.4.1，默认倍率 2.3×；点击“应用并返回”后才会保存。</string>
   <string name="tuning_decoder_label">识别引擎（默认：双引擎）</string>

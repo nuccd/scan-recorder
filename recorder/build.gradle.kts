@@ -6,8 +6,8 @@ android {
   namespace = "io.github.nuccd.scanrecorder"
   defaultConfig {
     applicationId = "io.github.nuccd.scanrecorder"
-    versionCode = 10
-    versionName = "0.4.4"
+    versionCode = 11
+    versionName = "0.5.0"
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
   buildFeatures {

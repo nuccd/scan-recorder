@@ -1,6 +1,11 @@
 package io.github.nuccd.scanrecorder
 
-internal data class ScanRecord(val id: String, val value: String, val createdAt: Long)
+internal data class ScanRecord(
+  val id: String,
+  val value: String,
+  val createdAt: Long,
+  val delivery: KeyboardDelivery = KeyboardDelivery.NONE
+)
 
 internal data class ScanBatch(val id: String, val name: String, val createdAt: Long, val allowDuplicates: Boolean)
 

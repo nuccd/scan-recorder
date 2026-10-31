@@ -12,6 +12,14 @@
       <TextView android:id="@+id/tuning_notice" android:layout_width="match_parent" android:layout_height="wrap_content"
           android:paddingTop="8dp" android:paddingBottom="12dp" android:text="@string/tuning_draft_notice"
           android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+      <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/keyboard_mode"
+          android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp"
+          android:text="@string/keyboard_mode" />
+      <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+          android:text="@string/keyboard_mode_help" android:paddingBottom="16dp"
+          android:textAppearance="@style/TextAppearance.Material3.BodySmall" />
+      <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+          android:text="@string/recognition_settings" android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
       <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
           android:labelFor="@id/tuning_decoder" android:text="@string/tuning_decoder_label" />
       <Spinner android:id="@+id/tuning_decoder" android:layout_width="match_parent" android:layout_height="48dp" />

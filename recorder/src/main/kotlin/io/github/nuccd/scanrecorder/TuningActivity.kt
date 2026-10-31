@@ -11,10 +11,11 @@ import io.github.nuccd.scanrecorder.databinding.ActivityTuningBinding
 /** Draft edits are applied explicitly, and remain local when the user leaves this screen. */
 internal class TuningActivity : AppCompatActivity() {
   private lateinit var form: TuningForm
+  private lateinit var binding: ActivityTuningBinding
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-    val binding = ActivityTuningBinding.inflate(layoutInflater)
+    binding = ActivityTuningBinding.inflate(layoutInflater)
     setContentView(binding.root)
     WindowCompat.setDecorFitsSystemWindows(window, false)
     ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, insets ->
@@ -24,17 +25,21 @@ internal class TuningActivity : AppCompatActivity() {
       insets
     }
     val store = TuningSettingsStore(this)
+    val keyboard = KeyboardSettingsStore(this)
+    binding.keyboardMode.isChecked = savedInstanceState?.getBoolean("keyboard_draft") ?: keyboard.enabled
     form = TuningForm(binding)
     form.populate(store.load())
     savedInstanceState?.getBundle("tuning_draft")?.let(form::restoreDraft)
     binding.tuningCancel.setOnClickListener { finish() }
     binding.tuningReset.setOnClickListener {
       form.populate(ScanTuningOptions())
+      binding.keyboardMode.isChecked = false
       binding.tuningNotice.setText(R.string.tuning_baseline_draft)
     }
     binding.tuningApply.setOnClickListener {
       form.read()?.let { options ->
         store.save(options)
+        keyboard.enabled = binding.keyboardMode.isChecked
         setResult(RESULT_OK)
         finish()
       }
@@ -43,6 +48,7 @@ internal class TuningActivity : AppCompatActivity() {
 
   override fun onSaveInstanceState(outState: Bundle) {
     if (::form.isInitialized) outState.putBundle("tuning_draft", form.saveDraft())
+    if (::binding.isInitialized) outState.putBoolean("keyboard_draft", binding.keyboardMode.isChecked)
     super.onSaveInstanceState(outState)
   }
 }

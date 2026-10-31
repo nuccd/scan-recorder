@@ -1,5 +1,5 @@
 <resources>
-  <string name="tuning_open_settings">调优</string>
+  <string name="tuning_open_settings">设置</string>
   <string name="tuning_copy_diagnostics">复制诊断</string>
   <string name="tuning_reset_diagnostics">清零统计</string>
   <string name="tuning_diagnostics_waiting">请开始扫码，查看本次会话的帧处理统计。</string>

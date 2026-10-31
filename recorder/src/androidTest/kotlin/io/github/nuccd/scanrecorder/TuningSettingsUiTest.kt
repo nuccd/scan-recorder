@@ -26,11 +26,14 @@ internal class TuningSettingsUiTest {
   private lateinit var store: TuningSettingsStore
   private lateinit var original: ScanTuningOptions
   private lateinit var activity: TuningActivity
+  private var originalKeyboard = false
 
   @Before
   fun prepare() {
     store = TuningSettingsStore(instrumentation.targetContext)
     original = store.load()
+    originalKeyboard = KeyboardSettingsStore(instrumentation.targetContext).enabled
+    KeyboardSettingsStore(instrumentation.targetContext).enabled = false
     store.save(ScanTuningOptions())
   }
 
@@ -38,6 +41,7 @@ internal class TuningSettingsUiTest {
   fun finish() {
     if (::activity.isInitialized) instrumentation.runOnMainSync { activity.finish() }
     if (::original.isInitialized) store.save(original)
+    KeyboardSettingsStore(instrumentation.targetContext).enabled = originalKeyboard
   }
 
   @Test
@@ -45,6 +49,7 @@ internal class TuningSettingsUiTest {
     launch()
     onMain {
       select(R.id.tuning_decoder, ScanDecoderMode.NATIVE.ordinal)
+      checked(R.id.keyboard_mode, true)
       select(R.id.tuning_formats, ScanFormatScope.LINEAR.ordinal)
       select(R.id.tuning_resolution, ScanResolution.FULL_HD.ordinal)
       input(R.id.tuning_frames_input, "4")
@@ -82,15 +87,18 @@ internal class TuningSettingsUiTest {
       store.load()
     )
     assertTrue(activity.isFinishing)
+    assertTrue(KeyboardSettingsStore(instrumentation.targetContext).enabled)
   }
 
   @Test
   fun restoringDefaultsOnlyChangesTheDraftAndCancellationPreservesTheSavedOptions() {
     val before = ScanTuningOptions(minimumFrames = 5, nativeTryDownscale = true, defaultZoomRatio = 4.5f)
     store.save(before)
+    KeyboardSettingsStore(instrumentation.targetContext).enabled = true
     launch()
     onMain {
       click(R.id.tuning_reset)
+      assertFalse(activity.findViewById<MaterialSwitch>(R.id.keyboard_mode).isChecked)
       assertEquals("3", activity.findViewById<EditText>(R.id.tuning_frames_input).text.toString())
       assertEquals("2.3", activity.findViewById<EditText>(R.id.tuning_default_zoom_input).text.toString())
       assertTrue(activity.findViewById<TextView>(R.id.tuning_notice).text.toString().contains("尚未应用"))
@@ -98,6 +106,7 @@ internal class TuningSettingsUiTest {
       click(R.id.tuning_cancel)
     }
     assertEquals(before, store.load())
+    assertTrue(KeyboardSettingsStore(instrumentation.targetContext).enabled)
   }
 
   @Test

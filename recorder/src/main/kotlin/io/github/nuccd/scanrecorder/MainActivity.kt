@@ -91,6 +91,11 @@ internal class MainActivity : AppCompatActivity() {
     setupFrameSelector()
     setupActions()
     model.state.observe(this, ::render)
+    model.keyboardConnection.observe(this) { connection ->
+      binding.keyboardStatus.visibility =
+        if (model.keyboardEnabled) android.view.View.VISIBLE else android.view.View.GONE
+      binding.keyboardStatus.setText(connection.label)
+    }
     model.events.observe(this) { event -> event.take()?.let(::handleEvent) }
   }
 
@@ -98,6 +103,10 @@ internal class MainActivity : AppCompatActivity() {
     binding.records.adapter = adapter
     binding.records.emptyView = binding.emptyRecords
     binding.records.setOnItemClickListener { _, _, position, _ -> editRecord(adapter.getItem(position)) }
+    binding.records.setOnItemLongClickListener { _, _, position, _ ->
+      sendRecord(adapter.getItem(position))
+      true
+    }
     binding.scanButton.setOnClickListener {
       if (scanRequested) {
           pauseScanning()
@@ -260,6 +269,22 @@ internal class MainActivity : AppCompatActivity() {
     binding.scanner.setTuningOptions(options)
     cameraUi.setDefaultZoomRatio(options.defaultZoomRatio)
     tuningUi.setOptions(options)
+    model.refreshKeyboard()
+  }
+
+  private fun sendRecord(record: ScanRecord) {
+    val current = snapshot ?: return
+    pauseScanning()
+    if (!model.keyboardEnabled) {
+      notice(getString(R.string.keyboard_off))
+      return
+    }
+    val warning = record.delivery == KeyboardDelivery.SUBMITTED || record.delivery == KeyboardDelivery.UNCERTAIN
+    val message = if (warning) R.string.keyboard_resend_confirm else R.string.keyboard_send_confirm
+    MaterialAlertDialogBuilder(this).setTitle(R.string.keyboard_send)
+      .setMessage(getString(message, record.value))
+      .setNegativeButton(R.string.cancel, null)
+      .setPositiveButton(R.string.keyboard_send) { _, _ -> model.sendToComputer(current.batch.id, record.id) }.show()
   }
 
   private fun stopCamera() {
@@ -394,6 +419,7 @@ internal class MainActivity : AppCompatActivity() {
     super.onStart()
     applyTuningOptions()
     foreground = true
+    model.refreshKeyboard(true)
     if (snapshot != null) {
       binding.status.setText(R.string.paused)
       startCameraIfReady()
@@ -402,6 +428,7 @@ internal class MainActivity : AppCompatActivity() {
 
   override fun onStop() {
     foreground = false
+    model.refreshKeyboard(false)
     stopCamera()
     super.onStop()
   }
