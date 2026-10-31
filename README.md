@@ -4,6 +4,10 @@
 
 使用与构建说明见 [扫码记录](docs/scan-recorder.md)。下面保留上游 quickie 的库文档。
 
+0.4.3 统一为一个「扫码记录」App，包名沿用 `io.github.nuccd.scanrecorder`；`main` 提供常规扫码、调优设置和诊断功能。右上角「调优」可修改识别参数及默认变焦倍率，初始为 2.3×，实际受相机支持范围限制。脚本默认构建 `bundledDebug`，设置、实验记录和构建命令见 [扫码调优实操手册](docs/scan-tuning.md)。
+
+旧的独立调优 App（包名以 `.tuning` 结尾）及其数据仍保留，数据不会自动迁移到统一 App；安装统一 App 不会删除旧调优 App。
+
 连续扫码使用 ML Kit，并以 [ZXing-C++](https://github.com/zxing-cpp/zxing-cpp)（Apache-2.0）补充条形码解码；两者均在手机本地运行。
 
 ## quickie

@@ -72,7 +72,9 @@ internal class ScanControlAdjustmentsTest {
     assertTrue(state.allowFrames(focus))
     assertFalse(state.acceptsFrame(beforeDeadline))
     assertTrue(state.acceptsFrame(state.revision))
+    val resumedRevision = state.revision
     assertTrue(state.finish(focus))
+    assertTrue(state.acceptsFrame(resumedRevision))
     assertTrue(state.acceptsFrame(state.revision))
   }
 

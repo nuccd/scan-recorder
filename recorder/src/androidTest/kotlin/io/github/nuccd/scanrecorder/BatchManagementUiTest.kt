@@ -18,6 +18,7 @@ import java.util.UUID
 /** Only test-owned batches are mutated; global deletion is cancelled at its confirmation dialog. */
 internal class BatchManagementUiTest {
   private val instrumentation = InstrumentationRegistry.getInstrumentation()
+  private val appId = instrumentation.targetContext.packageName
   private lateinit var activity: MainActivity
   private lateinit var model: RecorderViewModel
   private var originalBatch: String? = null
@@ -63,10 +64,10 @@ internal class BatchManagementUiTest {
     val before = requireNotNull(model.state.value?.snapshot)
     openManagement()
     click("rename_batch_button")
-    assertEquals(before.batch.name, node("io.github.nuccd.scanrecorder:id/dialog_input").text.toString())
+    assertEquals(before.batch.name, node("$appId:id/dialog_input").text.toString())
     setInput(" ")
     click("android:id/button1")
-    assertTrue(node("io.github.nuccd.scanrecorder:id/dialog_input").isContentInvalid)
+    assertTrue(node("$appId:id/dialog_input").isContentInvalid)
     assertEquals(before, model.state.value?.snapshot)
     setInput("重命名批次")
     click("android:id/button1")
@@ -117,13 +118,13 @@ internal class BatchManagementUiTest {
   private fun openManagement() {
     click("batch_button")
     for (id in listOf("new_batch_button", "rename_batch_button", "delete_batch_button", "delete_all_batches_button")) {
-      assertTrue(node("io.github.nuccd.scanrecorder:id/$id").isVisibleToUser)
+      assertTrue(node("$appId:id/$id").isVisibleToUser)
     }
     assertEquals("关闭", node("android:id/button2").text.toString())
   }
 
   private fun click(id: String) {
-    val fullId = if (id.startsWith("android:")) id else "io.github.nuccd.scanrecorder:id/$id"
+    val fullId = if (id.startsWith("android:")) id else "$appId:id/$id"
     assertTrue(node(fullId).performAction(AccessibilityNodeInfo.ACTION_CLICK))
     instrumentation.waitForIdleSync()
   }
@@ -132,7 +133,7 @@ internal class BatchManagementUiTest {
     val arguments = Bundle().apply {
       putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, value)
     }
-    val input = node("io.github.nuccd.scanrecorder:id/dialog_input")
+    val input = node("$appId:id/dialog_input")
     assertTrue(input.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arguments))
   }
 

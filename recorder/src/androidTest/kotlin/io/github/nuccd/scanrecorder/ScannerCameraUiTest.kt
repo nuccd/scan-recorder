@@ -152,6 +152,75 @@ internal class ScannerCameraUiTest {
   }
 
   @Test
+  fun configuredDefaultAppliesOnceEvenWithSynchronousCameraFeedback() = onMain {
+    val binding = binding()
+    val requests = mutableListOf<Float>()
+    val target = AtomicReference<ScannerCameraUi>()
+    val controls = ScannerCameraUi(binding, null, initialZoomRatio = 2.3f) { requested ->
+      requests.add(requested)
+      target.get().updateZoomState(ScanZoomState(requested, 1f, 9f))
+    }
+    target.set(controls)
+    controls.setActive(true)
+    controls.updateZoomState(ScanZoomState(1f, 1f, 9f))
+    assertEquals(listOf(2.3f), requests)
+    assertEquals(binding.root.context.getString(R.string.zoom_ratio, 2.3f), binding.zoomValue.text.toString())
+    controls.updateZoomState(ScanZoomState(4f, 1f, 9f))
+    controls.setDefaultZoomRatio(2.3f)
+    assertEquals(listOf(2.3f), requests)
+    controls.setActive(false)
+    controls.updateZoomState(null)
+    controls.setActive(true)
+    controls.updateZoomState(ScanZoomState(1f, 1f, 9f))
+    assertEquals(listOf(2.3f, 4f), requests)
+    controls.setDefaultZoomRatio(3.5f)
+    assertEquals(listOf(2.3f, 4f, 3.5f), requests)
+    assertEquals(binding.root.context.getString(R.string.zoom_ratio, 3.5f), binding.zoomValue.text.toString())
+    controls.setDefaultZoomRatio(3.5f)
+    assertEquals(3, requests.size)
+    binding.scanner.release()
+  }
+
+  @Test
+  fun configuredDefaultClampsToFixedCameraWithoutRepeatedRequests() = onMain {
+    val binding = binding()
+    val requests = mutableListOf<Float>()
+    val controls = ScannerCameraUi(binding, null, initialZoomRatio = 2.3f) { requests.add(it) }
+    controls.setActive(true)
+    controls.updateZoomState(ScanZoomState(1f, 1f, 1f))
+    controls.setDefaultZoomRatio(2.3f)
+    assertTrue(requests.isEmpty())
+    assertFalse(binding.zoomSlider.isEnabled)
+    val saved = Bundle().also(controls::saveState)
+    assertEquals(1f, saved.getFloat("camera_zoom_ratio"), 0f)
+    assertEquals(2.3f, saved.getFloat("camera_default_zoom_ratio"), 0f)
+    assertEquals(binding.root.context.getString(R.string.zoom_ratio, 1f), binding.zoomValue.text.toString())
+    binding.scanner.release()
+  }
+
+  @Test
+  fun recreationKeepsManualZoomUnlessTheConfiguredDefaultChangedWhileAway() = onMain {
+    val first = binding()
+    val controls = ScannerCameraUi(first, null, initialZoomRatio = 2.3f) { }
+    controls.updateZoomState(ScanZoomState(1f, 1f, 9f))
+    controls.updateZoomState(ScanZoomState(4f, 1f, 9f))
+    val saved = Bundle().also(controls::saveState)
+    val unchanged = binding()
+    val manualRequests = mutableListOf<Float>()
+    val restored = ScannerCameraUi(unchanged, saved, initialZoomRatio = 2.3f) { manualRequests.add(it) }
+    restored.updateZoomState(ScanZoomState(1f, 1f, 9f))
+    assertEquals(listOf(4f), manualRequests)
+    val changed = binding()
+    val newRequests = mutableListOf<Float>()
+    val updated = ScannerCameraUi(changed, saved, initialZoomRatio = 3f) { newRequests.add(it) }
+    updated.updateZoomState(ScanZoomState(1f, 1f, 9f))
+    assertEquals(listOf(3f), newRequests)
+    first.scanner.release()
+    unchanged.scanner.release()
+    changed.scanner.release()
+  }
+
+  @Test
   fun focusIndicatorNeverConsumesPreviewTouchesInAnyFocusState() = onMain {
     val binding = binding()
     val indicator = binding.focusIndicator

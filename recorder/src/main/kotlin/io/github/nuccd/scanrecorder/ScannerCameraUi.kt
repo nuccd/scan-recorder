@@ -14,9 +14,18 @@ import kotlin.math.roundToInt
 internal class ScannerCameraUi(
   private val binding: ActivityMainBinding,
   savedState: Bundle?,
+  initialZoomRatio: Float = 1f,
   private val requestZoom: (Float) -> Unit = binding.scanner::setZoomRatio
 ) {
-  private var desiredRatio = savedState?.getFloat(ZOOM_STATE_KEY, 1f)?.takeIf { it.isFinite() && it > 0 } ?: 1f
+  private var configuredDefaultRatio = initialZoomRatio.also(::requireDefaultRatio)
+  private var desiredRatio = if (
+    savedState != null && savedState.getFloat(DEFAULT_ZOOM_STATE_KEY, configuredDefaultRatio) == configuredDefaultRatio
+  ) {
+    savedState.getFloat(ZOOM_STATE_KEY, configuredDefaultRatio)
+      .takeIf { it.isFinite() && it > 0 } ?: configuredDefaultRatio
+  } else {
+    configuredDefaultRatio
+  }
   private var zoom: ScanZoomState? = null
   private var active = false
   private var tracking = false
@@ -61,6 +70,22 @@ internal class ScannerCameraUi(
 
   fun saveState(state: Bundle) {
     state.putFloat(ZOOM_STATE_KEY, desiredRatio)
+    state.putFloat(DEFAULT_ZOOM_STATE_KEY, configuredDefaultRatio)
+  }
+
+  /** Reapplying an unchanged default preserves the current manually selected magnification. */
+  fun setDefaultZoomRatio(ratio: Float) {
+    requireDefaultRatio(ratio)
+    if (configuredDefaultRatio == ratio) return
+    configuredDefaultRatio = ratio
+    desiredRatio = ratio
+    tracking = false
+    restorePending = true
+    updateZoomState(zoom)
+  }
+
+  private fun requireDefaultRatio(ratio: Float) {
+    require(ratio.isFinite() && ratio in 1f..10f) { "Default zoom must be finite and between 1 and 10" }
   }
 
   fun updateZoomState(state: ScanZoomState?) {
@@ -103,6 +128,7 @@ internal class ScannerCameraUi(
 
   private companion object {
     const val ZOOM_STATE_KEY = "camera_zoom_ratio"
+    const val DEFAULT_ZOOM_STATE_KEY = "camera_default_zoom_ratio"
     const val ZOOM_STEPS = 1000
     const val ZOOM_EPSILON = 0.001f
   }

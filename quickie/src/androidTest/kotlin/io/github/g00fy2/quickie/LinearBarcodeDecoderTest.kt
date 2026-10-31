@@ -129,6 +129,30 @@ internal class LinearBarcodeDecoderTest {
     }
   }
 
+  @Test
+  fun customNativeOptionsAndTheExplicitInversionFallbackReachTheReader() {
+    val options = ScanTuningOptions(
+      nativeTryHarder = false,
+      nativeTryRotate = false,
+      nativeTryInvert = false,
+      nativeTryDownscale = true,
+      nativeMinLineCount = 1,
+      nativeInvertFallback = false
+    )
+    val normal = fixture()
+    val inverted = fixture(inverted = true)
+    try {
+      val formats = intArrayOf(Barcode.FORMAT_CODE_128)
+      assertEquals(FIRST_TEXT, LinearBarcodeDecoder(formats, options).decode(normal).single().rawValue)
+      assertTrue(LinearBarcodeDecoder(formats, options).decode(inverted).isEmpty())
+      val fallback = options.copy(nativeInvertFallback = true)
+      assertEquals(FIRST_TEXT, LinearBarcodeDecoder(formats, fallback).decode(inverted).single().rawValue)
+    } finally {
+      normal.recycle()
+      inverted.recycle()
+    }
+  }
+
   private fun decoder(): LinearBarcodeDecoder = LinearBarcodeDecoder(intArrayOf(Barcode.FORMAT_ALL_FORMATS))
 
   private fun fixture(inverted: Boolean = false, twoCodes: Boolean = false, tilt: Float = 0f): Bitmap {

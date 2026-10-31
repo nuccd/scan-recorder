@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/tuning_root" android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:padding="16dp">
+  <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+      android:text="@string/tuning_title" android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall" />
+  <ScrollView android:id="@+id/tuning_scroll" android:layout_width="match_parent" android:layout_height="0dp"
+      android:layout_weight="1" android:fillViewport="true">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical">
+      <TextView android:id="@+id/tuning_notice" android:layout_width="match_parent" android:layout_height="wrap_content"
+          android:paddingTop="8dp" android:paddingBottom="12dp" android:text="@string/tuning_draft_notice"
+          android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+      <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+          android:labelFor="@id/tuning_decoder" android:text="@string/tuning_decoder_label" />
+      <Spinner android:id="@+id/tuning_decoder" android:layout_width="match_parent" android:layout_height="48dp" />
+      <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+          android:labelFor="@id/tuning_formats" android:text="@string/tuning_formats_label" />
+      <Spinner android:id="@+id/tuning_formats" android:layout_width="match_parent" android:layout_height="48dp" />
+      <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+          android:labelFor="@id/tuning_resolution" android:text="@string/tuning_resolution_label" />
+      <Spinner android:id="@+id/tuning_resolution" android:layout_width="match_parent" android:layout_height="48dp" />
+      <com.google.android.material.textfield.TextInputLayout android:id="@+id/tuning_default_zoom"
+          android:layout_width="match_parent" android:layout_height="wrap_content"
+          android:hint="@string/tuning_zoom_label" app:helperText="@string/tuning_zoom_help">
+        <com.google.android.material.textfield.TextInputEditText android:id="@+id/tuning_default_zoom_input"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="numberDecimal"
+            android:singleLine="true" />
+      </com.google.android.material.textfield.TextInputLayout>
+      <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+          android:text="@string/tuning_stability_heading" android:paddingTop="12dp" android:paddingBottom="8dp"
+          android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
+      <com.google.android.material.textfield.TextInputLayout android:id="@+id/tuning_frames"
+          android:layout_width="match_parent" android:layout_height="wrap_content"
+          android:hint="@string/tuning_frames_label" app:helperText="@string/tuning_frames_help">
+        <com.google.android.material.textfield.TextInputEditText android:id="@+id/tuning_frames_input"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number"
+            android:singleLine="true" />
+      </com.google.android.material.textfield.TextInputLayout>
+      <com.google.android.material.textfield.TextInputLayout android:id="@+id/tuning_minimum_ms"
+          android:layout_width="match_parent" android:layout_height="wrap_content"
+          android:hint="@string/tuning_minimum_label" app:helperText="@string/tuning_minimum_help">
+        <com.google.android.material.textfield.TextInputEditText android:id="@+id/tuning_minimum_input"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number"
+            android:singleLine="true" />
+      </com.google.android.material.textfield.TextInputLayout>
+      <com.google.android.material.textfield.TextInputLayout android:id="@+id/tuning_gap_ms"
+          android:layout_width="match_parent" android:layout_height="wrap_content"
+          android:hint="@string/tuning_gap_label" app:helperText="@string/tuning_gap_help">
+        <com.google.android.material.textfield.TextInputEditText android:id="@+id/tuning_gap_input"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number"
+            android:singleLine="true" />
+      </com.google.android.material.textfield.TextInputLayout>
+      <com.google.android.material.textfield.TextInputLayout android:id="@+id/tuning_observation_ms"
+          android:layout_width="match_parent" android:layout_height="wrap_content"
+          android:hint="@string/tuning_observation_label" app:helperText="@string/tuning_observation_help">
+        <com.google.android.material.textfield.TextInputEditText android:id="@+id/tuning_observation_input"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number"
+            android:singleLine="true" />
+      </com.google.android.material.textfield.TextInputLayout>
+      <com.google.android.material.textfield.TextInputLayout android:id="@+id/tuning_focus_ms"
+          android:layout_width="match_parent" android:layout_height="wrap_content"
+          android:hint="@string/tuning_focus_label" app:helperText="@string/tuning_focus_help">
+        <com.google.android.material.textfield.TextInputEditText android:id="@+id/tuning_focus_input"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number"
+            android:singleLine="true" />
+      </com.google.android.material.textfield.TextInputLayout>
+      <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+          android:text="@string/tuning_native_heading" android:paddingTop="16dp" android:paddingBottom="8dp"
+          android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
+      <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/tuning_harder"
+          android:layout_width="match_parent" android:layout_height="wrap_content"
+          android:minHeight="48dp" android:text="@string/tuning_harder_label" />
+      <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/tuning_rotate"
+          android:layout_width="match_parent" android:layout_height="wrap_content"
+          android:minHeight="48dp" android:text="@string/tuning_rotate_label" />
+      <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/tuning_invert"
+          android:layout_width="match_parent" android:layout_height="wrap_content"
+          android:minHeight="48dp" android:text="@string/tuning_invert_label" />
+      <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/tuning_downscale"
+          android:layout_width="match_parent" android:layout_height="wrap_content"
+          android:minHeight="48dp" android:text="@string/tuning_downscale_label" />
+      <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/tuning_explicit_invert"
+          android:layout_width="match_parent" android:layout_height="wrap_content"
+          android:minHeight="48dp" android:text="@string/tuning_explicit_invert_label" />
+      <com.google.android.material.textfield.TextInputLayout android:id="@+id/tuning_lines"
+          android:layout_width="match_parent" android:layout_height="wrap_content"
+          android:hint="@string/tuning_lines_label" app:helperText="@string/tuning_lines_help">
+        <com.google.android.material.textfield.TextInputEditText android:id="@+id/tuning_lines_input"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number"
+            android:singleLine="true" />
+      </com.google.android.material.textfield.TextInputLayout>
+    </LinearLayout>
+  </ScrollView>
+  <TextView android:id="@+id/tuning_error" android:layout_width="match_parent" android:layout_height="wrap_content"
+      android:textColor="?attr/colorError" android:accessibilityLiveRegion="polite" />
+  <com.google.android.material.button.MaterialButton android:id="@+id/tuning_reset"
+      style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="match_parent"
+      android:layout_height="wrap_content" android:text="@string/tuning_reset" />
+  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+    <com.google.android.material.button.MaterialButton android:id="@+id/tuning_cancel"
+        style="@style/Widget.Material3.Button.TextButton" android:layout_width="0dp" android:layout_weight="1"
+        android:layout_height="wrap_content" android:text="@string/tuning_cancel" />
+    <com.google.android.material.button.MaterialButton android:id="@+id/tuning_apply"
+        android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"
+        android:text="@string/tuning_apply" />
+  </LinearLayout>
+</LinearLayout>

@@ -1,0 +1,51 @@
+<resources>
+  <string name="tuning_title">扫码调优设置</string>
+  <string name="tuning_draft_notice">修改先保存在本页草稿，点击“应用并返回”后生效；取消不保存。识别参数默认沿用 0.4.1，默认变焦倍率为 2.3×。</string>
+  <string name="tuning_baseline_draft">草稿已恢复默认参数，尚未应用。识别参数沿用 0.4.1，默认倍率 2.3×；点击“应用并返回”后才会保存。</string>
+  <string name="tuning_decoder_label">识别引擎（默认：双引擎）</string>
+  <string name="tuning_formats_label">识别码制（默认：全部；与白框形状分别设置）</string>
+  <string name="tuning_resolution_label">请求分析分辨率（默认：720p；实际以相机协商为准）</string>
+  <string name="tuning_zoom_label">默认变焦倍率（×）</string>
+  <string name="tuning_zoom_help">范围 1.0–10.0，可输入小数；默认 2.3×。实际倍率按相机支持范围裁剪。</string>
+  <string name="tuning_zoom_error">请输入 1.0–10.0 范围内的有限数字，可使用小数</string>
+  <string-array name="tuning_decoder_values">
+    <item>双引擎：ML Kit + 原生一维码</item>
+    <item>仅 ML Kit</item>
+    <item>仅原生一维码</item>
+  </string-array>
+  <string-array name="tuning_format_values">
+    <item>全部支持码制</item>
+    <item>仅一维条形码</item>
+    <item>仅 QR 二维码</item>
+  </string-array>
+  <string-array name="tuning_resolution_values">
+    <item>720p：1280 × 720</item>
+    <item>1080p：1920 × 1080</item>
+  </string-array>
+  <string name="tuning_stability_heading">稳定识别与对焦</string>
+  <string name="tuning_frames_label">至少一致帧数（帧）</string>
+  <string name="tuning_frames_help">范围 1–10；默认 3。只有相同内容的成功解码才计数。</string>
+  <string name="tuning_minimum_label">最短观察时间（毫秒）</string>
+  <string name="tuning_minimum_help">范围 0–1500；默认 200，需同时满足一致帧数。</string>
+  <string name="tuning_gap_label">漏识别容忍时间（毫秒）</string>
+  <string name="tuning_gap_help">范围 0–1000；默认 150。从首次未解码帧起计时；连续成功的慢帧不会因此重置。</string>
+  <string name="tuning_observation_label">证据总窗口上限（毫秒）</string>
+  <string name="tuning_observation_help">范围 200–3000；默认 600，必须大于或等于最短观察时间。</string>
+  <string name="tuning_focus_label">点击对焦后阻帧时间（毫秒）</string>
+  <string name="tuning_focus_help">范围 0–1000；默认 300。仅控制等待识别的时间，不代表对焦完成。</string>
+  <string name="tuning_native_heading">原生一维码参数（仅启用原生引擎时生效）</string>
+  <string name="tuning_harder_label">加强搜索 tryHarder（默认开启）</string>
+  <string name="tuning_rotate_label">尝试旋转 tryRotate（默认开启）</string>
+  <string name="tuning_invert_label">引擎尝试反色 tryInvert（默认开启）</string>
+  <string name="tuning_downscale_label">尝试缩小图像 tryDownscale（默认关闭）</string>
+  <string name="tuning_explicit_invert_label">显式反色补扫 invertFallback（默认开启）</string>
+  <string name="tuning_lines_label">原生最少扫描线数（条）</string>
+  <string name="tuning_lines_help">范围 1–5；默认 2。</string>
+  <string name="tuning_reset">恢复默认参数草稿</string>
+  <string name="tuning_cancel">取消并返回</string>
+  <string name="tuning_apply">应用并返回</string>
+  <string name="tuning_number_error">请输入 %1$d–%2$d 范围内的整数</string>
+  <string name="tuning_window_error">总窗口必须大于或等于最短观察时间</string>
+  <string name="tuning_native_qr_error">原生引擎仅支持一维条形码，不能搭配“仅 QR 二维码”。请选择 ML Kit 或双引擎。</string>
+  <string name="tuning_input_error">请检查红色标记的数值，当前修改尚未保存。</string>
+</resources>

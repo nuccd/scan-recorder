@@ -30,6 +30,7 @@ internal class ScanCameraControls(
   private var focusState = ScanFocusState(0f, 0f, ScanFocusStatus.HIDDEN)
   private var interactionEnabled = true
   private var focusVisible = false
+  var focusWaitMillis: Long = 300L
   private var zoomListener: (ScanZoomState?) -> Unit = {}
   private var focusListener: (ScanFocusState) -> Unit = {}
   private var releaseFocusFrames = Runnable {}
@@ -145,14 +146,15 @@ internal class ScanCameraControls(
       releaseFocusFrames = Runnable {
         if (adjustments.allowFrames(token)) {
           onGeometryChanged()
-          Log.i(DIAGNOSTIC_TAG, "focus pending; analysis resumed after ${FOCUS_FRAME_WAIT_MILLIS}ms")
+          Log.i(DIAGNOSTIC_TAG, "focus pending; analysis resumed after ${focusWaitMillis}ms")
         }
       }
-      handler.postDelayed(releaseFocusFrames, FOCUS_FRAME_WAIT_MILLIS)
+      handler.postDelayed(releaseFocusFrames, focusWaitMillis)
       val result = boundCamera.cameraControl.startFocusAndMetering(action)
       result.addListener({
+        val previousRevision = adjustments.revision
         if (adjustments.finish(token)) {
-          onGeometryChanged()
+          if (adjustments.revision != previousRevision) onGeometryChanged()
           val status = try {
             if (result.get().isFocusSuccessful) ScanFocusStatus.FOCUSED else ScanFocusStatus.FAILED
           } catch (_: Exception) {
@@ -209,7 +211,6 @@ internal class ScanCameraControls(
   private companion object {
     const val FOCUS_FEEDBACK_MILLIS = 3000L
     const val FOCUS_AUTO_CANCEL_MILLIS = 3000L
-    const val FOCUS_FRAME_WAIT_MILLIS = 300L
     const val DIAGNOSTIC_TAG = "SCAN_DIAG"
   }
 }
