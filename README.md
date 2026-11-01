@@ -1,186 +1,147 @@
-# scan-recorder
+# scan-recorder · 扫码记录
 
-基于 quickie 的通用连续扫码记录 App：扫码后确认录入、重复行提示、条形码 / 二维码扫描框、手动变焦与点击对焦、本地批次管理（新建、重命名、单个或全部删除）、手动增删改、数量统计，以及不带序号的 TXT / logcat 导出。App 代码位于 `recorder` 模块。
+基于 [quickie](https://github.com/G00fY2/quickie) 的 Android 连续扫码记录工具。支持条形码与二维码识别、人工确认、批次管理、去重、手动增删改、TXT / logcat 导出；通过 USB 连接 Windows 接收程序，还可将确认后的扫码内容输入电脑当前输入框并自动回车。
 
-使用与构建说明见 [扫码记录](docs/scan-recorder.md)。下面保留上游 quickie 的库文档。
+识别与记录保存在手机本地，使用随 APK 提供的 ML Kit 模型和 ZXing-C++，无需联网下载模型。USB 扫码枪模式不依赖蓝牙或公司外网。
 
-当前 0.5.0 为统一的「扫码记录」App，包名沿用 `io.github.nuccd.scanrecorder`；扫码和设置页固定竖屏。首页「设置」包含默认关闭、记住选择的 USB 扫码枪模式，以及原有识别调优参数、默认 2.3× 变焦倍率。确认扫码后先保存，再由 Windows 接收程序输入原文并按 Enter；断线不自动补发，长按记录可手动发送。使用与构建见 [USB 扫码枪模式](docs/windows-receiver.md)，识别参数见 [扫码调优实操手册](docs/scan-tuning.md)。
+| 组件 | 当前版本 | 说明 |
+| --- | --- | --- |
+| Android App | 0.5.0 | 包名 `io.github.nuccd.scanrecorder`；扫码、设置与调优统一在一个 App 中。 |
+| Windows 接收程序 | 0.5.2 | Windows 10/11 x64；兼容 Android App 0.5.0。 |
 
-旧的独立调优 App（包名以 `.tuning` 结尾）及其数据仍保留，数据不会自动迁移到统一 App；安装统一 App 不会删除旧调优 App。
+## 功能一览
 
-Windows 接收程序 0.5.1 增加实时调试日志、ADB 启动与查询的超时和错误提示，以及 CPU / 内存占用显示，兼容现有手机 App 0.5.0。
+### 扫码、取景与确认
 
-Windows 接收程序 0.5.2 将「启用输入」改为每次启动时默认勾选，可随时手动暂停。
+- **连续扫码**：开始 / 暂停扫描，每条结果先弹出确认窗口；确认后保存，取消不新增记录。保存后提供提示、触感反馈并滚动到新记录；扫描时保持屏幕常亮，进入后台释放相机。
+- **条形码与二维码**：支持 Code 128、Code 39、Code 93、Codabar、EAN-13、EAN-8、ITF、UPC-A、UPC-E，以及 QR Code、Data Matrix、PDF417、Aztec。可在设置中限制识别格式。
+- **两种取景框**：条形码宽框、二维码方框；切换的是框形状，识别格式由设置决定。只接收完整边界落在框内的结果。
+- **多码提示**：框内出现多个不同内容时，提示对准其中一个；两个引擎读到同一内容不会被当作两个不同内容。
+- **稳定性判断**：默认至少 3 帧一致、观察至少 200 ms，并支持短暂漏识别容忍；相关参数可调整。
+- **防止连续弹窗**：同一码在一次扫描会话中触发后，需要移出框外至少 500 ms 才能再次触发。
+- **手动变焦**：倍率滑条与当前实际倍率显示；默认起始倍率为 2.3×，可设置，实际范围遵守相机能力。
+- **点击对焦与补光**：点击预览选择对焦位置，显示对焦状态；相机支持时可开关补光。
+- **界面与恢复**：扫码和设置页固定竖屏；软键盘收起后自动恢复扫码框。系统保存状态后的重建可恢复待确认内容、当前倍率、设置草稿及 TXT 导出快照。
 
-连续扫码使用 ML Kit，并以 [ZXing-C++](https://github.com/zxing-cpp/zxing-cpp)（Apache-2.0）补充条形码解码；两者均在手机本地运行。
+### 记录、重复检查与批次
 
-## quickie
+| 功能 | 行为 |
+| --- | --- |
+| 通用文本 | 保留中文、数字、网址、多行内容、前导零和空格；不做 IMEI 校验、双 IMEI 特殊处理或 OCR。 |
+| 人工维护 | 支持手动新增；点击记录可编辑或删除。单条删除后可通过提示中的「撤销」恢复原内容及位置。 |
+| 重复开关 | 每个批次独立保存「允许重复」，新批次默认关闭；按内容完全相同判断重复。 |
+| 重复行号 | 扫到重复内容时，列出当前批次已有的全部行号。禁止重复时须确认提示后才能继续，允许重复时仍由用户决定是否录入。 |
+| 序号与统计 | 界面显示连续序号、当前记录总数及不同内容数；序号不写入 TXT、扫码内容日志或电脑输入。统计包含手动记录，不自动等于手机台数。 |
+| 批次操作 | 新建、切换、重命名、删除当前批次、删除全部批次；列表标记当前批次，管理按钮独立于批次列表。 |
+| 清空与删除 | 「清空本批」保留批次名称；删除批次会连同记录删除。删除最后一个或全部批次后自动建立空批次。确认窗口显示删除范围和数量。 |
+| 本地保存 | 记录、批次、顺序、重复开关及发送状态持久保存；重新打开 App 或重启手机后保留。 |
 
-![quickie logo](https://raw.githubusercontent.com/G00fY2/quickie/gh-pages/media/logo_dark.svg#gh-dark-mode-only)
-![quickie logo](https://raw.githubusercontent.com/G00fY2/quickie/gh-pages/media/logo_light.svg#gh-light-mode-only)
+### TXT 与日志导出
 
-**quickie** is a Quick Response (QR) Code scanning library for Android that is based on CameraX and ML Kit on-device barcode detection. It's an alternative to ZXing based libraries and written in Kotlin. **quickie** features:
-- Easy API for launching the QR scanner and receiving results by using the new Activity Result API
-- Modern design, edge-to-edge scanning view with multilingual user hint
-- Android Jetpack CameraX for communicating with the camera and showing the preview
-- ML Kit Vision API for best, fully on-device barcode recognition and decoding
+- **TXT**：通过系统保存窗口选择位置，UTF-8 编码、CRLF 换行，按当前批次列表顺序每行一条。
+- **纯内容输出**：TXT 与 `SCAN_EXPORT` 内容日志都不带序号、批次名、标题或统计。多行内容及反斜杠用转义表示，手机内原文不变。
+- **导出快照**：打开文件保存窗口前生成快照；导出不会删除记录，取消保存不影响批次内容。
+- **logcat 导出**：手机主动输出当前批次，`SCAN_EXPORT` 只放内容，`SCAN_INFO` 放导出批次及数量；过长内容提示改用 TXT。
 
-## Download [![Maven Central](https://img.shields.io/maven-central/v/io.github.g00fy2.quickie/quickie-unbundled?labelColor=24292e&color=0969da)](https://search.maven.org/search?q=g:io.github.g00fy2.quickie)
-There are two different flavors available on `mavenCentral()`:
+### 设置、识别调优与手机诊断
 
-| Bundled                                                                             | Unbundled                                                                                                |
-|-------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------|
-| ML Kit model is bundled inside app (independent of Google Services)                 | ML Kit model will be automatically downloaded via Play Services (once while installing/updating the app) |
-| About 2.5 MB app size increase per ABI (you should use App Bundle or ABI splitting) | About 550 KB app size increase                                                                           |
-| V3 model is used (faster, more accurate)                                            | Currently V1 model will be downloaded                                                                    |
+- **识别引擎**：双引擎、仅 ML Kit、仅原生一维码。原生引擎为 ZXing-C++，补充 9 种一维条形码的识别。
+- **格式与分辨率**：全部格式 / 仅一维条形码 / 仅 QR；请求分析分辨率可选 720p 或 1080p，诊断显示相机实际尺寸。
+- **稳定性与相机参数**：一致帧数、最短观察时间、漏识别容忍、证据总窗口、点击对焦后阻帧时间、默认变焦倍率。
+- **原生解码选项**：加强搜索、尝试旋转、引擎反色、尝试缩小图像、显式反色补扫、最少扫描线数。
+- **保存与恢复**：「应用并返回」保存；取消放弃草稿；恢复默认只修改草稿，应用后才生效。无效参数及不兼容的引擎 / 码制组合会被阻止。
+- **实时诊断**：查看参数、实际分析尺寸、倍率、各引擎耗时、帧耗时、解码 / 框内 / 不同内容数量、识别阶段和累计计数。
+- **复制与清零**：可复制诊断报告、清零统计，也可用 `SCAN_DIAG` 查看相机与识别日志；诊断报告不包含扫码原文。
 
-```kotlin
-// bundled:  
-implementation("io.github.g00fy2.quickie:quickie-bundled:1.12.0")
+完整默认值、取值范围和对比方法见 [调优实操手册](docs/scan-tuning.md)。识别效果仍受反光、抖动、距离和标签质量影响，多帧判断不能代替人工核对。
 
-// unbundled:
-implementation("io.github.g00fy2.quickie:quickie-unbundled:1.12.0")
+### USB 扫码枪与电脑输入
+
+手机扫码 → 稳定识别 → 人工确认 → 先保存到手机 → 电脑输入原文 → 追加一次 Enter。
+
+- **开关默认值**：手机「设置 → 扫码枪模式」首次默认关闭并记住选择；Windows「启用输入」每次启动默认勾选，可手动暂停。
+- **通用输入位置**：可用于 Excel 单元格及其他软件当前输入框；输入中文、英文、数字等单行 Unicode 文本，不添加序号、批次名或单引号。
+- **自动发送**：仅对确认后的新扫码自动发送。手动新增、编辑、撤销、切换批次和打开历史记录不会自动发送。
+- **长按补发**：长按记录可主动发送或补发；已提交或结果不确定时，会提醒先核对电脑以避免重复。
+- **发送状态**：显示未发送、正在发送、已提交电脑、发送结果待核对、仅本机保存；失败不会回滚手机中已保存的记录。
+- **回执与传输去重**：匹配每次请求的回执；接收程序在本进程内缓存最近 1024 个请求，同一请求不会重复生成按键。这与允许录入重复内容是两套规则。
+- **断线处理**：连接可重试恢复，断线、重连及重启都不自动重放历史记录。手机离开扫码主页或关闭模式后停止通道。
+- **内容边界**：多行、Tab、控制字符、Unicode 行分隔符或超长内容仅保存在手机；自动输入上限为 4096 个 UTF-16 单元、8192 个 UTF-8 字节。
+- **Excel 原文保留**：录入列预先设为「文本」，避免前导零丢失、长编号精度变化或自动转换日期。Enter 后的移动方向由 Excel 决定。
+
+「已提交电脑」表示 Windows 接受了输入请求，不代表目标软件已经保存或完成业务提交。详细操作见 [USB 扫码枪模式](docs/windows-receiver.md)。
+
+### Windows 接收程序与故障排查
+
+- **原生 C++ / Win32**：完整解压后运行，支持 Windows 10/11 x64，无需另装 .NET、Visual C++ 运行库或 Android Studio。
+- **设备选择**：可选择并记住官方 `adb.exe` 路径，刷新列出已授权设备，明确选择一台手机连接；显示本次已提交条数。
+- **ADB 自动准备**：刷新时检查或启动 ADB 服务，再短暂重试设备发现；分别提示未授权、离线、无设备及启动失败。
+- **超时与恢复**：启动 ADB 最多等待 12 秒、整个刷新共用 20 秒期限；失败显示原因并恢复按钮，卡住时仍可关闭程序。
+- **实时调试窗口**：显示当前步骤、等待阶段、PID、耗时、退出码及 ADB 错误输出；长日志自动换行，支持复制、保存 TXT、清空显示及自动滚动开关。
+- **资源占用**：主窗口和调试窗口每秒显示接收程序自身 CPU 与物理内存，调试窗口另有私有提交内存；每 10 秒写入一条资源诊断。
+- **日志范围**：日志不含扫码原文，只在内存中保留有界历史，用户主动保存时才写入文件。
+- **连接管理**：同一 Windows 会话只运行一个接收实例；退出时清理本程序创建的端口转发，保留共享 ADB 服务。不安装常驻服务、不设置开机启动，扫码输入不修改剪贴板。
+- **输入目标检查**：接收程序或调试窗口自身在前台、没有前台目标或修饰键被按住时，不生成按键；手机保留未发送状态，可在选好目标后手动补发。
+
+## 快速开始
+
+### 只在手机记录
+
+1. 安装 App，打开「批次」新建或选择批次。
+2. 选择宽框或方框，点击「开始扫码」，允许相机权限。
+3. 对准一个完整的码，核对弹窗后确认录入；需要时手动编辑或删除。
+4. 完成本批后「导出 TXT」，或通过 ADB 监听后使用「日志导出」。
+
+### 输入到 Windows
+
+1. 手机进入「设置」，开启「扫码枪模式」并「应用并返回」。
+2. 电脑完整解压接收程序，USB 连接手机，开启并授权 USB 调试。
+3. 接收程序「刷新 → 选择手机 → 连接」；「启用输入」启动时默认开启。
+4. 在电脑目标输入框放好光标，手机保持扫码主页，扫码并确认后输入原文和 Enter。
+
+## 环境与构建
+
+| 用途 | 环境 |
+| --- | --- |
+| Android 使用 | Android 6.0（API 23）及以上、可用摄像头。项目 compile / target SDK 为 36，已有 Android 17（API 37）模拟器相关回归记录。 |
+| Android 构建 | JDK 17+、Android SDK Platform 36、Build Tools 36.1.0、Gradle Wrapper；可通过脚本指定本机 JDK。 |
+| Windows 使用 | Windows 10/11 x64、USB 数据线、手机 USB 调试授权及可用的设备驱动；使用随包或自行选择的官方 ADB。 |
+| Windows 构建 | 支持 C++20 的 MinGW G++。 |
+
+```powershell
+# Android：统一 App，包含设置、调优与扫码枪模式
+.\scripts\build.ps1 -JdkHome '<本机 JDK 路径>'
+
+# Windows：接收程序、原生回归检查与交付 ZIP
+.\scripts\build-windows.ps1 -Compiler '<g++.exe 路径>' -AdbDirectory '<官方 platform-tools 目录>'
 ```
 
-## Quick Start
+| 产物 | 路径 |
+| --- | --- |
+| Android APK | `recorder/build/outputs/apk/bundled/debug/recorder-bundled-debug.apk` |
+| Windows ZIP | `build/windows-receiver/scan-recorder-receiver-0.5.2-win-x64.zip` |
 
-#### View-based
-To use the QR scanner simply register the `ScanQRCode()` ActivityResultContract together with a callback during `init` or `onCreate()` lifecycle of your Activity/Fragment and use the returned ActivityResultLauncher to launch the QR scanner Activity.
-```kotlin
-val scanQrCodeLauncher = registerForActivityResult(ScanQRCode()) { result ->
-    // handle QRResult
-}
+构建缓存、临时文件与模拟器数据放在项目的 `.gradle-user-home`、`.local-temp`、`build/avd`；项目位于 D 盘时，这些数据也在 D 盘。SDK 路径、缓存、数据库、APK、用户日志与截图不提交到仓库。
 
-override fun onCreate(savedInstanceState: Bundle?) {
-    super.onCreate(savedInstanceState)
-    …
-    binding.button.setOnClickListener { scanQrCodeLauncher.launch(null) }
-}
-```
+## 文档与代码
 
-Check out the [sample](https://github.com/G00fY2/quickie/tree/develop/sample) inside this repo or visit the official [Activity Result API documentation](https://developer.android.com/training/basics/intents/result) for more information.
+| 内容 | 入口 |
+| --- | --- |
+| 手机使用、重复规则、批次、导出与升级 | [扫码记录使用手册](docs/scan-recorder.md) |
+| 完整调优参数、诊断字段与实验记录模板 | [调优实操手册](docs/scan-tuning.md) |
+| Windows 连接、发送状态、日志与资源占用 | [USB 扫码枪模式](docs/windows-receiver.md) |
+| USB 协议、消息回执及联调测试 | [USB 输入协议](docs/usb-keyboard-protocol.md) |
+| 业务词汇 | [CONTEXT.md](CONTEXT.md) |
+| 上游库 API、示例与原说明 | [quickie 上游库说明](docs/quickie-library.md) |
 
-#### Jetpack Compose
-Use the `rememberLauncherForActivityResult()` API to register the `ScanQRCode()` ActivityResultContract together with a callback in your composable:
-```kotlin
-@Composable
-fun GetQRCodeExample() {
-    val scanQrCodeLauncher = rememberLauncherForActivityResult(ScanQRCode()) { result ->
-        // handle QRResult
-    }
-    
-    Button(onClick = { scanQrCodeLauncher.launch(null) }) {
-    …
-}
-```
-Check out the official [Compose Activity Result documentation](https://developer.android.com/jetpack/compose/libraries#activity_result) for more information.
+- [`recorder/`](recorder/)：Android App、记录与批次管理、设置、导出及 USB 通道。
+- [`quickie/`](quickie/)：识别库、连续扫码、相机操控、双引擎与诊断。
+- [`windows-receiver/`](windows-receiver/)：Windows 接收程序与原生测试。
+- [`sample/`](sample/)：保留的上游示例；[`scripts/`](scripts/)：构建脚本。
 
-### Responses
-The activity result is a subclass of the sealed `QRResult` class: 
+## 数据与来源
 
-1. `QRSuccess` when ML Kit successfully detected a QR code
-   * wraps a `QRContent` object
-2. `QRUserCanceled` when the Activity got canceled by the user
-3. `QRMissingPermission` when the user didn't accept the camera permission
-4. `QRError` when CameraX or ML Kit threw an exception
-   * wraps the `exception`
+同包名、同签名覆盖安装可保留本地记录；卸载或清除数据会删除数据库，需保留的记录请先导出。旧独立 `.tuning` App 的数据不会自动迁移，旧包仍可自行导出。
 
-#### Content
-The content type of the QR code detected by ML Kit is wrapped inside a subclass of the sealed `QRContent` class which always provides a `rawBytes` and `rawValue` (will only be `null` for non-UTF8 barcodes).
-
-Currently, supported subtypes are:
-`Plain`, `Wifi`, `Url`, `Sms`, `GeoPoint`, `Email`, `Phone`, `ContactInfo`, `CalendarEvent`
-
-See the ML Kit [Barcode documentation](https://developers.google.com/android/reference/com/google/mlkit/vision/barcode/common/Barcode#nested-class-summary) for further details.
-
-### Customization
-Use the `ScanCustomCode()` ActivityResultContract to create a configurable barcode scan. When launching the ActivityResultLauncher pass in a `ScannerConfig` object:
-
-<details>
-  <summary>BarcodeFormat options</summary>
-
-```kotlin
-BarcodeFormat.FORMAT_ALL_FORMATS
-BarcodeFormat.FORMAT_CODE_128
-BarcodeFormat.FORMAT_CODE_39
-BarcodeFormat.FORMAT_CODE_93
-BarcodeFormat.FORMAT_CODABAR
-BarcodeFormat.FORMAT_DATA_MATRIX
-BarcodeFormat.FORMAT_EAN_13
-BarcodeFormat.FORMAT_EAN_8
-BarcodeFormat.FORMAT_ITF
-BarcodeFormat.FORMAT_QR_CODE
-BarcodeFormat.FORMAT_UPC_A
-BarcodeFormat.FORMAT_UPC_E
-BarcodeFormat.FORMAT_PDF417
-BarcodeFormat.FORMAT_AZTEC
-```
-</details>
-
-```kotlin
-val scanCustomCode = registerForActivityResult(ScanCustomCode(), ::handleResult)
-
-override fun onCreate(savedInstanceState: Bundle?) {
-    super.onCreate(savedInstanceState)
-    …
-    binding.button.setOnClickListener {
-      scanCustomCode.launch(
-        ScannerConfig.build {
-          setBarcodeFormats(listOf(BarcodeFormat.FORMAT_CODE_128)) // set interested barcode formats
-          setOverlayStringRes(R.string.scan_barcode) // string resource used for the scanner overlay
-          setOverlayDrawableRes(R.drawable.ic_scan_barcode) // drawable resource used for the scanner overlay
-          setHapticSuccessFeedback(false) // enable (default) or disable haptic feedback when a barcode was detected
-          setShowTorchToggle(true) // show or hide (default) torch/flashlight toggle button
-          setShowCloseButton(true) // show or hide (default) close button
-          setHorizontalFrameRatio(2.2f) // set the horizontal overlay ratio (default is 1 / square frame)
-          setUseFrontCamera(true) // use the front camera
-          setKeepScreenOn(true) // keep the device's screen turned on
-        }
-      )
-    }
-}
-
-fun handleResult(result: QRResult) {
-    …
-```
-> [!TIP]
-> You can optionally [pass in an ActivityOptionsCompat object](https://developer.android.com/reference/androidx/activity/result/ActivityResultLauncher#launch(I,%20androidx.core.app.ActivityOptionsCompat)) when launching the ActivityResultLauncher to control the scanner launch animation.
-
-## Screenshots / Sample App
-You can find the sample app APKs inside the [release](https://github.com/G00fY2/quickie/releases) assets.
-
-![Image](https://raw.githubusercontent.com/G00fY2/quickie/gh-pages/media/quickie-device-demo.png)
-
-## Requirements
-* AndroidX
-* Min SDK 21+ (required by CameraX)
-* (Google Play Services available on the end device if using `quickie-unbundled`)
-
-## Terms & Privacy
-See [ML Kit Terms & Privacy](https://developers.google.com/ml-kit/terms)
-
-## Contributing
-See [CONTRIBUTING](.github/CONTRIBUTING.md)
-
-Thanks to everyone who contributed to quickie!
-
-## License
-    The MIT License (MIT)
-
-    Copyright (C) 2022 Thomas Wirth
-
-    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-    associated documentation files (the "Software"), to deal in the Software without restriction,
-    including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
-    and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
-    subject to the following conditions:
-
-    The above copyright notice and this permission notice shall be included in all copies or substantial
-    portions of the Software.
-
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
-    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-    DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
-    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+本项目基于 quickie，项目许可证见 [LICENSE](LICENSE)。条形码补充解码使用 [ZXing-C++](https://github.com/zxing-cpp/zxing-cpp)（Apache-2.0）；随包 ADB 的相关声明见其 `NOTICE.txt`。
 
