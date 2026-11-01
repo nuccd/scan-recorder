@@ -5,7 +5,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $projectDir = Split-Path -Parent $PSScriptRoot
-$outputDir = Join-Path $projectDir 'build/windows-receiver/0.5.0'
+$outputDir = Join-Path $projectDir 'build/windows-receiver/0.5.1'
 $tempDir = Join-Path $projectDir '.local-temp'
 New-Item -ItemType Directory -Path $outputDir, $tempDir -Force | Out-Null
 if (!$Compiler) { $Compiler = (Get-Command g++.exe -ErrorAction Stop).Source }
@@ -26,6 +26,14 @@ try {
   if ($LASTEXITCODE -ne 0) { throw 'Protocol test build failed' }
   & $testExe
   if ($LASTEXITCODE -ne 0) { throw 'Protocol tests failed' }
+  $adbTestExe = Join-Path $projectDir 'build/keyboard/windows-adb-test.exe'
+  & $Compiler @flags '-municode' (Join-Path $projectDir 'windows-receiver/tests/adb_process_test.cpp') '-o' $adbTestExe
+  if ($LASTEXITCODE -ne 0) { throw 'ADB process test build failed' }
+  & $adbTestExe
+  if ($LASTEXITCODE -ne 0) { throw 'ADB process tests failed' }
+  $uiTestExe = Join-Path $projectDir 'build/keyboard/windows-receiver-ui-test.exe'
+  & $Compiler @flags '-municode' (Join-Path $projectDir 'windows-receiver/tests/receiver_ui_test.cpp') '-o' $uiTestExe '-luser32'
+  if ($LASTEXITCODE -ne 0) { throw 'Receiver UI test build failed' }
   foreach ($name in @('adb.exe', 'AdbWinApi.dll', 'AdbWinUsbApi.dll', 'NOTICE.txt')) {
     $source = Join-Path $AdbDirectory $name
     if (Test-Path -LiteralPath $source) { Copy-Item -LiteralPath $source -Destination $outputDir -Force }
@@ -35,7 +43,7 @@ try {
   $packageNames = @('scan-recorder-receiver.exe', 'README.txt', 'adb.exe', 'AdbWinApi.dll', 'AdbWinUsbApi.dll',
     'NOTICE.txt', 'LICENSE.txt')
   $packageFiles = Get-ChildItem -LiteralPath $outputDir -File | Where-Object { $_.Name -in $packageNames }
-  Compress-Archive -LiteralPath $packageFiles.FullName -DestinationPath (Join-Path $projectDir 'build/windows-receiver/scan-recorder-receiver-0.5.0-win-x64.zip') -Force
+  Compress-Archive -LiteralPath $packageFiles.FullName -DestinationPath (Join-Path $projectDir 'build/windows-receiver/scan-recorder-receiver-0.5.1-win-x64.zip') -Force
   Write-Host "Windows package: $outputDir"
 } finally {
   $env:TEMP = $oldTemp

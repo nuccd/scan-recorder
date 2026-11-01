@@ -8,6 +8,8 @@
 
 旧的独立调优 App（包名以 `.tuning` 结尾）及其数据仍保留，数据不会自动迁移到统一 App；安装统一 App 不会删除旧调优 App。
 
+Windows 接收程序 0.5.1 增加实时调试日志、ADB 启动与查询的超时和错误提示，以及 CPU / 内存占用显示，兼容现有手机 App 0.5.0。
+
 连续扫码使用 ML Kit，并以 [ZXing-C++](https://github.com/zxing-cpp/zxing-cpp)（Apache-2.0）补充条形码解码；两者均在手机本地运行。
 
 ## quickie
