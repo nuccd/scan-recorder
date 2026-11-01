@@ -43,6 +43,9 @@ int wmain(int argc, wchar_t** argv) {
     HWND receiver;
     ~Cleanup() { PostMessageW(receiver, WM_CLOSE, 0, 0); }
   } cleanup{receiver};
+  // Pause the new default before discovering or connecting any phone.
+  SendMessageW(GetDlgItem(receiver, 106), BM_SETCHECK, BST_UNCHECKED, 0);
+  SendMessageW(receiver, WM_COMMAND, MAKEWPARAM(106, BN_CLICKED), reinterpret_cast<LPARAM>(GetDlgItem(receiver, 106)));
   ShowWindow(receiver, SW_SHOWNOACTIVATE);
   UpdateWindow(receiver);
   SetWindowTextW(GetDlgItem(receiver, 101), argv[2]);

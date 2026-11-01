@@ -5,7 +5,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $projectDir = Split-Path -Parent $PSScriptRoot
-$outputDir = Join-Path $projectDir 'build/windows-receiver/0.5.1'
+$outputDir = Join-Path $projectDir 'build/windows-receiver/0.5.2'
 $tempDir = Join-Path $projectDir '.local-temp'
 New-Item -ItemType Directory -Path $outputDir, $tempDir -Force | Out-Null
 if (!$Compiler) { $Compiler = (Get-Command g++.exe -ErrorAction Stop).Source }
@@ -43,7 +43,7 @@ try {
   $packageNames = @('scan-recorder-receiver.exe', 'README.txt', 'adb.exe', 'AdbWinApi.dll', 'AdbWinUsbApi.dll',
     'NOTICE.txt', 'LICENSE.txt')
   $packageFiles = Get-ChildItem -LiteralPath $outputDir -File | Where-Object { $_.Name -in $packageNames }
-  Compress-Archive -LiteralPath $packageFiles.FullName -DestinationPath (Join-Path $projectDir 'build/windows-receiver/scan-recorder-receiver-0.5.1-win-x64.zip') -Force
+  Compress-Archive -LiteralPath $packageFiles.FullName -DestinationPath (Join-Path $projectDir 'build/windows-receiver/scan-recorder-receiver-0.5.2-win-x64.zip') -Force
   Write-Host "Windows package: $outputDir"
 } finally {
   $env:TEMP = $oldTemp

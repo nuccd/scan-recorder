@@ -26,7 +26,7 @@
 - `KeyboardBridgeTest`：断线不回放、回执丢失、暂停状态，使用隔离的本地接收端，不生成键盘事件。
 - `windows-receiver/tests/protocol_test.cpp`：桌面解析、按键事件和 ID 去重；Windows 构建脚本自动执行。
 - `windows-receiver/tests/adb_process_test.cpp`：自有假 ADB 验证超时、取消、错误和输出保留、管道生命周期、设备搜索、日志上限及本进程资源采样；构建脚本自动执行，不启动共享 ADB 或生成键盘输入。
-- `windows-receiver/tests/receiver_ui_test.cpp`：专用窗口验证实时日志、超时恢复、错误和未授权提示、设备列表及资源显示。构建脚本只编译；手动运行时传入接收程序、假 ADB 测试 EXE，可选第三个参数为真实 ADB 路径。全程不启用输入，超时场景约等待 12 秒。
+- `windows-receiver/tests/receiver_ui_test.cpp`：专用窗口验证启动默认开启、手动暂停、实时日志、超时恢复、错误和未授权提示、设备列表及资源显示。构建脚本只编译；手动运行时传入接收程序、假 ADB 测试 EXE，可选第三个参数为真实 ADB 路径。验证默认勾选后会立即暂停，再开始刷新，不生成键盘输入；超时场景约等待 12 秒。
 - `KeyboardDesktopIntegrationTest` 默认跳过，只在显式参数下运行：`desktop_input=transport-only` 只验证真实接收程序的暂停连接，不输入文字；`desktop_input=owned-target` 必须配合 `desktop_target.cpp` 的专用测试窗口。测试窗口未取得前台焦点时返回 77 跳过，不向其他窗口输入。
 
 本协议不以 logcat 作为实时传输通道，原有 `SCAN_EXPORT` 批量日志导出仍独立可用。

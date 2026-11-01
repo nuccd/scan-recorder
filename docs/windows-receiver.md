@@ -1,4 +1,4 @@
-# USB 扫码枪模式（Windows 0.5.1 / Android 0.5.0）
+# USB 扫码枪模式（Windows 0.5.2 / Android 0.5.0）
 
 手机确认扫码后先保存记录，再通过 USB/ADB 把原文交给 Windows 接收程序。接收程序向当前输入位置输入文字，最后按一次 Enter。不依赖公司外网或蓝牙。
 
@@ -7,7 +7,7 @@
 1. 安装 0.5.0「扫码记录」。打开「设置 → 扫码枪模式」，点击「应用并返回」。首次默认关闭，以后记住选择；取消设置不改变原配置。
 2. 把 Windows 压缩包完整解压到有写入权限的位置，运行 `scan-recorder-receiver.exe`。支持 Windows 10/11 64 位，随包 ADB、DLL、声明和程序应放在同一目录。
 3. USB 数据线连接手机，开启 USB 调试，并在手机确认电脑授权。接收程序点「刷新」，会自动检查或启动 ADB 服务，再搜索设备；选择对应手机并「连接」。无需提前打开控制台执行 `adb devices`。首次连接如没有设备，检查手机授权、数据线和公司允许的设备驱动。
-4. 勾选电脑「启用输入」，在 Excel 单元格或其他软件输入框中放好光标。手机保持在扫码主页，开始扫码，核对内容后「确认录入」。
+4. 电脑「启用输入」启动时默认勾选，在 Excel 单元格或其他软件输入框中放好光标。手机保持在扫码主页，开始扫码，核对内容后「确认录入」。需要暂停时可取消勾选。
 
 在 Excel **输入前**把录入列设为「文本」（选列 → Ctrl+1 → 文本），保留前导零和长编号，也避免日期、科学计数法等自动转换。程序不添加单引号，也不修改原文。Enter 后的移动方向遵守 Excel 自己的设置。[微软说明](https://support.microsoft.com/en-us/excel/keeping-leading-zeros-and-large-numbers)
 
@@ -46,7 +46,7 @@
 
 - 原文支持数字、英文、中文、网址和其他单行 Unicode 文本；不做 IMEI 或双 IMEI 判断。
 - 首版自动输入上限为 4096 个 UTF-16 单元、8192 个 UTF-8 字节。含 CR/LF、Tab、其他控制字符及 Unicode 行分隔符的内容只保存在手机，不转换或裁剪。
-- 接收程序启动时输入开关关闭。选择设备时按 ADB 序列号明确指定，不会向多台手机同时连接。
+- 接收程序每次启动时「启用输入」默认勾选，可手动取消。选择设备时按 ADB 序列号明确指定，不会向多台手机同时连接。
 - 以普通权限运行；输入到管理员权限的软件可能被 Windows 限制。本程序不自动提升权限、不安装驱动、不设置开机启动，也不关闭其他工具的 ADB 服务。
 - 不向外部网络监听，不保存扫码原文日志。接收程序只在本目录 `receiver.ini` 记住 ADB 路径；交付压缩包不包含此个人配置。
 - 一条键盘输入请求会包含原文和 Enter，但不能保证所有目标软件以相同方式处理它；请先在空白表格或测试输入框试用。
@@ -65,11 +65,16 @@ Windows 使用现有 MinGW G++（C++20），不要求 Visual Studio、Qt 或 .NE
 .\scripts\build-windows.ps1 -AdbDirectory '<官方 platform-tools 目录>'
 ```
 
-脚本把编译临时文件放在项目 `.local-temp`，产物在 `build/windows-receiver/0.5.1/`，并生成 `scan-recorder-receiver-0.5.1-win-x64.zip`。可用 `-Compiler` 指定 `g++.exe`。交付包只包含接收程序、说明和可用的官方 ADB 组件与声明，SDK 路径、`receiver.ini`、日志和测试数据不打包。
+脚本把编译临时文件放在项目 `.local-temp`，产物在 `build/windows-receiver/0.5.2/`，并生成 `scan-recorder-receiver-0.5.2-win-x64.zip`。可用 `-Compiler` 指定 `g++.exe`。交付包只包含接收程序、说明和可用的官方 ADB 组件与声明，SDK 路径、`receiver.ini`、日志和测试数据不打包。
 
 Android 安装包：`recorder/build/outputs/apk/bundled/debug/recorder-bundled-debug.apk`。旧数据库升级只增加发送状态，保留批次、记录、顺序和重复开关；普通 TXT 和日志导出格式不变。
 
 协议与开发联调见 [USB 协议](usb-keyboard-protocol.md)。
+
+## Windows 0.5.2 验证
+
+- 接收程序启动默认勾选「启用输入」；连接提示与实际开关状态一致。界面测试每次新启动都检查默认勾选，再通过点击取消勾选，确认后续刷新保持暂停。
+- 64 项原生检查与 6 种窗口场景通过；专用键盘输入测试工具已同步改为连接前先暂停并编译通过。本次测试未生成键盘输入，手机 App 无需更新。
 
 ## Windows 0.5.1 验证
 

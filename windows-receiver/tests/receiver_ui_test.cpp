@@ -63,6 +63,10 @@ int wmain(int argc, wchar_t** argv) {
       const auto ready = GetTickCount64() + 4000;
       while (!window && GetTickCount64() < ready) { window = owned_window(L"ScanRecorderReceiver", process.dwProcessId); Sleep(20); }
       check(window != nullptr, "owned main window exists");
+      HWND input = GetDlgItem(window, 106);
+      check(SendMessageW(input, BM_GETCHECK, 0, 0) == BST_CHECKED, "keyboard input defaults to enabled on each launch");
+      SendMessageW(input, BM_CLICK, 0, 0);
+      check(SendMessageW(input, BM_GETCHECK, 0, 0) == BST_UNCHECKED, "user can pause the default input before connecting");
       const auto* adb = scenario == L"real" ? argv[3] : argv[2];
       SendMessageW(GetDlgItem(window, 101), WM_SETTEXT, 0, reinterpret_cast<LPARAM>(adb));
       click(window, 107);
@@ -108,7 +112,7 @@ int wmain(int argc, wchar_t** argv) {
         "successful discovery populates devices");
       else check(diagnostic.find(L"ADB 调用结束") != std::wstring::npos, "real ADB refresh completed");
       check(SendMessageW(GetDlgItem(window, 106), BM_GETCHECK, 0, 0) == BST_UNCHECKED,
-        "tests never enable keyboard input");
+        "input remains paused throughout discovery tests");
       std::cout << "GUI scenario passed: " << scan::utf8(scenario) << '\n';
     }
     std::cout << checks << " UI checks passed (poll counts included); no keyboard input generated\n";

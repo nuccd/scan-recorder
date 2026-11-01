@@ -26,7 +26,7 @@ HWND connect_button = nullptr, enabled_box = nullptr, count_text = nullptr;
 HWND log_window = nullptr, log_edit = nullptr;
 HWND resource_text = nullptr, log_resource_text = nullptr;
 HFONT font = nullptr;
-std::atomic<bool> stopping{true}, enabled{false};
+std::atomic<bool> stopping{true}, enabled{true};
 std::atomic<bool> closing{false}, searching{false};
 std::atomic<SOCKET> active_socket{INVALID_SOCKET};
 std::atomic<unsigned long> submitted{0};
@@ -141,8 +141,9 @@ void receive(SOCKET socket, scan::DeliveryCache& results) {
   diagnostic->write("正在等待手机协议握手");
   if (lines.read() != "SCANRECORDER/1") throw std::runtime_error("手机协议版本不匹配");
   write_line(socket, "READY/1");
-  diagnostic->write("手机握手成功，连接已建立；输入须由用户勾选启用");
-  status(L"已连接手机。勾选“启用输入”，然后在 Excel 或其他软件中选好输入位置。");
+  diagnostic->write(enabled ? "手机握手成功，连接已建立；输入已启用" : "手机握手成功，连接已建立；输入已暂停");
+  status(enabled ? L"已连接手机，输入已启用。请在 Excel 或其他软件中选好输入位置。" :
+    L"已连接手机，输入已暂停。需要接收时请勾选“启用输入”。");
   while (!stopping) {
     const auto line = lines.read();
     if (line == "PING") { write_line(socket, enabled ? "PONG ACTIVE" : "PONG PAUSED"); continue; }
@@ -350,7 +351,8 @@ void create_controls() {
   connect_button = control(L"BUTTON", L"连接", BS_PUSHBUTTON | WS_TABSTOP, connect_id, 540, 98, 100, 30);
   enabled_box = control(L"BUTTON", L"启用输入（当前输入框＋Enter）", BS_AUTOCHECKBOX | WS_TABSTOP,
     enabled_id, 20, 151, 620, 32);
-  status_text = control(L"STATIC", L"选择 adb.exe 并刷新设备，连接后启用输入。", 0, 0, 20, 200, 620, 56);
+  SendMessageW(enabled_box, BM_SETCHECK, BST_CHECKED, 0);
+  status_text = control(L"STATIC", L"输入默认开启。请选择 adb.exe，刷新设备并连接手机。", 0, 0, 20, 200, 620, 56);
   count_text = control(L"STATIC", L"本次已提交：0 条", 0, 0, 20, 264, 470, 26);
   control(L"BUTTON", L"调试日志", BS_PUSHBUTTON | WS_TABSTOP, log_id, 510, 260, 130, 30);
   resource_text = control(L"STATIC", L"本程序 CPU 采样中…", 0, 0, 20, 300, 620, 26);
@@ -412,7 +414,7 @@ LRESULT CALLBACK window_proc(HWND window, UINT message, WPARAM w, LPARAM l) {
     case WM_CREATE:
       root = window; diagnostic->attach(window, message_log); create_controls();
       update_resources(); SetTimer(window, 1, 1000, nullptr);
-      diagnostic->write("接收程序 0.5.1 已启动；日志仅记录连接诊断，不含扫码原文"); return 0;
+      diagnostic->write("接收程序 0.5.2 已启动；输入默认开启；日志仅记录连接诊断，不含扫码原文"); return 0;
     case WM_COMMAND:
       try { command(LOWORD(w)); }
       catch (const std::exception& error) {
@@ -476,7 +478,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
   WNDCLASSW log_class = cls;
   log_class.lpfnWndProc = log_proc; log_class.lpszClassName = L"ScanRecorderDiagnostics";
   RegisterClassW(&log_class);
-  HWND window = CreateWindowExW(0, cls.lpszClassName, L"扫码记录 · USB 接收程序 0.5.1",
+  HWND window = CreateWindowExW(0, cls.lpszClassName, L"扫码记录 · USB 接收程序 0.5.2",
     WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, CW_USEDEFAULT, CW_USEDEFAULT,
     680, 480, nullptr, nullptr, instance, nullptr);
   if (!window) return 3;
