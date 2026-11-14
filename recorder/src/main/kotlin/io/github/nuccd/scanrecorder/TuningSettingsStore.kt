@@ -7,9 +7,15 @@ import io.github.g00fy2.quickie.ScanFormatScope
 import io.github.g00fy2.quickie.ScanResolution
 import io.github.g00fy2.quickie.ScanTuningOptions
 
-/** Stores tuning parameters only; invalid or damaged preferences fall back to the baseline as a whole. */
+/** Stores scan settings; invalid tuning parameters fall back to the baseline. */
 internal class TuningSettingsStore(context: Context) {
   private val preferences = context.applicationContext.getSharedPreferences("scan_tuning", Context.MODE_PRIVATE)
+
+  var quickScanEnabled: Boolean
+    get() = preferences.getBoolean("quick_scan", false)
+    set(value) {
+      preferences.edit { putBoolean("quick_scan", value) }
+    }
 
   fun load(): ScanTuningOptions = runCatching {
     val baseline = ScanTuningOptions()

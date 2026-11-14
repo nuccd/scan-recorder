@@ -1,11 +1,17 @@
 package io.github.nuccd.scanrecorder
 
+import android.app.Application
 import android.os.SystemClock
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModelStore
+import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.net.Socket
+import java.util.UUID
 import java.util.concurrent.CopyOnWriteArrayList
 
 /** An isolated local receiver; never injects keyboard events or touches stored records. */
@@ -49,6 +55,45 @@ internal class KeyboardBridgeTest {
     await { bridge.state == KeyboardConnection.PAUSED }
     assertEquals(KeyboardDelivery.PENDING, bridge.send("not typed"))
     assertTrue(frames.isEmpty())
+  }
+
+  @Test
+  fun quickScanSavesAndSubmitsOneFrameWithoutConfirmation() {
+    val instrumentation = InstrumentationRegistry.getInstrumentation()
+    val app = instrumentation.targetContext.applicationContext as Application
+    val tuning = TuningSettingsStore(app)
+    val keyboard = KeyboardSettingsStore(app)
+    val originalQuick = tuning.quickScanEnabled
+    val originalKeyboard = keyboard.enabled
+    val database = "quick-usb-${UUID.randomUUID()}.db"
+    val models = ViewModelStore()
+    lateinit var model: RecorderViewModel
+    try {
+      tuning.quickScanEnabled = true
+      keyboard.enabled = true
+      instrumentation.runOnMainSync {
+        model = RecorderViewModel(app, SavedStateHandle(), database)
+        models.put("quick", model)
+        model.refreshKeyboard(true)
+      }
+      val frames = client()
+      await { model.keyboardConnection.value == KeyboardConnection.CONNECTED && model.state.value?.working == false }
+      instrumentation.runOnMainSync {
+        model.offerScan("00123中文")
+        assertNull(model.state.value?.pendingScan)
+      }
+      await { model.state.value?.working == false }
+      val saved = requireNotNull(model.state.value?.snapshot).records.single()
+      assertEquals("00123中文", saved.value)
+      assertEquals(KeyboardDelivery.SUBMITTED, saved.delivery)
+      assertEquals(1, frames.size)
+      assertTrue(frames.single().endsWith("3030313233e4b8ade69687"))
+    } finally {
+      instrumentation.runOnMainSync { models.clear() }
+      tuning.quickScanEnabled = originalQuick
+      keyboard.enabled = originalKeyboard
+      app.deleteDatabase(database)
+    }
   }
 
   private fun client(dropResult: Boolean = false, paused: Boolean = false): List<String> {

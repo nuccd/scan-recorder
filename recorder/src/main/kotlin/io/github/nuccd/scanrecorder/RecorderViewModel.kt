@@ -26,8 +26,9 @@ internal data class RecorderState(
 )
 
 internal sealed interface RecorderEvent {
-  data class Saved(val count: Int, val scanned: Boolean) : RecorderEvent
+  data class Saved(val count: Int, val scanned: Boolean, val duplicateRows: List<Int> = emptyList()) : RecorderEvent
   data object Duplicate : RecorderEvent
+  data class QuickScanDuplicate(val rows: List<Int>) : RecorderEvent
   data class Deleted(val record: DeletedRecord) : RecorderEvent
   data class Notice(val resource: Int) : RecorderEvent
   data class Failure(val resource: Int, val detail: String) : RecorderEvent
@@ -57,6 +58,8 @@ internal class RecorderViewModel @JvmOverloads constructor(
   private var snapshot: RecorderSnapshot? = null
   private val pendingExport = AtomicFile(File(application.filesDir, "pending-export.txt"))
   private var pendingOperations = 0
+  private val tuningSettings = TuningSettingsStore(application)
+  val quickScanEnabled: Boolean get() = tuningSettings.quickScanEnabled
   private val keyboardSettings = KeyboardSettingsStore(application)
   private val mutableKeyboard = MutableLiveData(KeyboardConnection.OFF)
   val keyboardConnection: LiveData<KeyboardConnection> = mutableKeyboard
@@ -98,15 +101,19 @@ internal class RecorderViewModel @JvmOverloads constructor(
     publish(store.setDelivery(batchId, record.id, result), RecorderEvent.Notice(result.label))
   }
 
-  /** Runs on the UI thread. Recognition alone never writes to the database. */
+  /** Runs on the UI thread after the scanner accepts a stable result. */
   fun offerScan(value: String) {
     val current = requireNotNull(mutableState.value)
-    val batch = current.snapshot?.batch
-    if (batch == null || current.pendingScan != null || value.isEmpty()) return
-    val pending = PendingScan(batch.id, value)
-    savedState["pending_scan_batch"] = pending.batchId
-    savedState["pending_scan_value"] = pending.value
-    mutableState.value = current.copy(pendingScan = pending)
+    val batch = current.snapshot?.batch ?: return
+    if (current.working || current.pendingScan != null || value.isEmpty()) return
+    if (quickScanEnabled) {
+      saveScan(batch.id, value, quick = true)
+    } else {
+      val pending = PendingScan(batch.id, value)
+      savedState["pending_scan_batch"] = pending.batchId
+      savedState["pending_scan_value"] = pending.value
+      mutableState.value = current.copy(pendingScan = pending)
+    }
   }
 
   fun cancelScan() {
@@ -127,14 +134,21 @@ internal class RecorderViewModel @JvmOverloads constructor(
       mutableState.value = current.copy(pendingScan = null)
       emit(RecorderEvent.Duplicate)
     } else {
-      submit {
-        val keyboard = keyboardEnabled
-        val (updated, saved) = store.save(pending.batchId, pending.value, keyboard = keyboard)
-        val event = if (saved) RecorderEvent.Saved(updated.records.size, true) else RecorderEvent.Duplicate
-        publish(updated, event, clearPending = true)
-        if (saved && keyboard) deliverRecord(pending.batchId, updated.records.last())
-      }
+      saveScan(pending.batchId, pending.value, quick = false)
     }
+  }
+
+  private fun saveScan(batchId: String, value: String, quick: Boolean) = submit {
+    val keyboard = keyboardEnabled
+    val (updated, saved) = store.save(batchId, value, keyboard = keyboard)
+    val rows = if (quick) updated.duplicateRows(value) else emptyList()
+    val event = when {
+      saved -> RecorderEvent.Saved(updated.records.size, true, rows.dropLast(1))
+      quick -> RecorderEvent.QuickScanDuplicate(rows)
+      else -> RecorderEvent.Duplicate
+    }
+    publish(updated, event, clearPending = !quick)
+    if (saved && keyboard) deliverRecord(batchId, updated.records.last())
   }
 
   fun newBatch(name: String) = submit {

@@ -38,14 +38,26 @@ jobs:
       - name: "Execute Gradle task"
         run: ./gradlew ${{ matrix.task }}${{ matrix.flavor }}
 
+  windows-cpp-format:
+    name: Windows C++ formatting
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - name: Install clang-format 18.1.8
+        run: python3 -m pip install --disable-pip-version-check --only-binary=:all: --target "$RUNNER_TEMP/scan-clang-format" clang-format==18.1.8
+      - name: Check Windows C++ formatting
+        shell: pwsh
+        run: ./scripts/format-windows.ps1 -Formatter "$env:RUNNER_TEMP/scan-clang-format/clang_format/data/bin/clang-format"
+
   all-checks-passed:
     name: "Final Status Check"
     runs-on: ubuntu-slim
     if: always()
-    needs: build
+    needs: [build, windows-cpp-format]
     steps:
       - name: "Validate Matrix results"
         run: |
-          if [ "${{ needs.build.result }}" != "success" ]; then
+          if [ "${{ needs.build.result }}" != "success" ] || [ "${{ needs.windows-cpp-format.result }}" != "success" ]; then
             exit 1
           fi

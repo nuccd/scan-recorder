@@ -1,0 +1,17 @@
+BasedOnStyle: Google
+Language: Cpp
+LineEnding: LF
+IncludeCategories:
+  # WinSock2 must precede windows.h. APIs such as commdlg and psapi need windows.h.
+  - Regex: '^<winsock2[.]h>$'
+    Priority: 1
+    SortPriority: -2
+  - Regex: '^<windows[.]h>$'
+    Priority: 1
+    SortPriority: -1
+  - Regex: '^<.*[.]h>$'
+    Priority: 1
+  - Regex: '^<'
+    Priority: 2
+  - Regex: '.*'
+    Priority: 3

@@ -1,6 +1,6 @@
 <resources>
   <string name="keyboard_mode">扫码枪模式（USB 电脑输入）</string>
-  <string name="keyboard_mode_help">首次默认关闭，记住你的选择；应用后生效。确认扫码后保存并输入电脑当前输入框，再按 Enter。主页保持前台，电脑运行接收程序。Excel 请先将录入列设为文本。断线不自动补发，长按记录可手动发送。</string>
+  <string name="keyboard_mode_help">首次默认关闭，应用后记住选择。扫码记录保存后会尝试输入电脑当前输入框并按 Enter。请保持手机主页前台，并在电脑运行接收程序。Excel 请先将录入列设为文本。断线后可长按记录手动补发。</string>
   <string name="recognition_settings">识别调优</string>
   <string name="keyboard_off">扫码枪模式已关闭，请在设置中开启</string>
   <string name="keyboard_waiting">扫码枪模式：等待电脑连接 · 长按记录可补发</string>

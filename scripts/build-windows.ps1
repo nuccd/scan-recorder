@@ -5,10 +5,12 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $projectDir = Split-Path -Parent $PSScriptRoot
-$outputDir = Join-Path $projectDir 'build/windows-receiver/0.5.2'
+$outputDir = Join-Path $projectDir 'build/windows-receiver/0.5.3'
 $tempDir = Join-Path $projectDir '.local-temp'
 New-Item -ItemType Directory -Path $outputDir, $tempDir -Force | Out-Null
 if (!$Compiler) { $Compiler = (Get-Command g++.exe -ErrorAction Stop).Source }
+$Compiler = (Get-Command $Compiler -CommandType Application -ErrorAction Stop).Source
+$windres = Join-Path (Split-Path -Parent $Compiler) 'windres.exe'
 $oldTemp = $env:TEMP
 $oldTmp = $env:TMP
 try {
@@ -17,7 +19,12 @@ try {
   $flags = @('-std=c++20', '-O2', '-Wall', '-Wextra', '-Werror', '-static', '-static-libgcc',
     '-static-libstdc++', '-DUNICODE', '-D_UNICODE', '-DNOMINMAX', '-D_WIN32_WINNT=0x0A00',
     '-finput-charset=UTF-8', '-Wl,--dynamicbase', '-Wl,--nxcompat')
-  & $Compiler @flags '-municode' '-mwindows' (Join-Path $projectDir 'windows-receiver/src/main.cpp') `
+  $resourceDir = Join-Path $projectDir 'windows-receiver/src'
+  $resourceObject = Join-Path $tempDir 'receiver-resource.o'
+  & $windres '-I' $resourceDir '-i' (Join-Path $resourceDir 'receiver.rc') `
+    '-O' 'coff' '-o' $resourceObject
+  if ($LASTEXITCODE -ne 0) { throw 'Windows icon resource build failed' }
+  & $Compiler @flags '-municode' '-mwindows' (Join-Path $resourceDir 'main.cpp') $resourceObject `
     '-o' (Join-Path $outputDir 'scan-recorder-receiver.exe') '-lws2_32' '-luser32' '-lcomdlg32' '-lgdi32'
   if ($LASTEXITCODE -ne 0) { throw 'Windows receiver build failed' }
   $testExe = Join-Path $projectDir 'build/keyboard/windows-protocol-test.exe'
@@ -43,7 +50,7 @@ try {
   $packageNames = @('scan-recorder-receiver.exe', 'README.txt', 'adb.exe', 'AdbWinApi.dll', 'AdbWinUsbApi.dll',
     'NOTICE.txt', 'LICENSE.txt')
   $packageFiles = Get-ChildItem -LiteralPath $outputDir -File | Where-Object { $_.Name -in $packageNames }
-  Compress-Archive -LiteralPath $packageFiles.FullName -DestinationPath (Join-Path $projectDir 'build/windows-receiver/scan-recorder-receiver-0.5.2-win-x64.zip') -Force
+  Compress-Archive -LiteralPath $packageFiles.FullName -DestinationPath (Join-Path $projectDir 'build/windows-receiver/scan-recorder-receiver-0.5.3-win-x64.zip') -Force
   Write-Host "Windows package: $outputDir"
 } finally {
   $env:TEMP = $oldTemp

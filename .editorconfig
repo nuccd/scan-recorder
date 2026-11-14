@@ -20,3 +20,7 @@ ij_kotlin_line_break_after_multiline_when_entry=false
 ij_continuation_indent_size=4
 ij_xml_keep_line_breaks=true
 ij_xml_space_inside_empty_tag=false
+
+[windows-receiver/**.{cc,cpp,h,hpp}]
+max_line_length=80
+insert_final_newline=true

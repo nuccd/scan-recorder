@@ -26,6 +26,7 @@ internal class TuningActivity : AppCompatActivity() {
     }
     val store = TuningSettingsStore(this)
     val keyboard = KeyboardSettingsStore(this)
+    binding.quickScan.isChecked = savedInstanceState?.getBoolean("quick_scan_draft") ?: store.quickScanEnabled
     binding.keyboardMode.isChecked = savedInstanceState?.getBoolean("keyboard_draft") ?: keyboard.enabled
     form = TuningForm(binding)
     form.populate(store.load())
@@ -33,12 +34,14 @@ internal class TuningActivity : AppCompatActivity() {
     binding.tuningCancel.setOnClickListener { finish() }
     binding.tuningReset.setOnClickListener {
       form.populate(ScanTuningOptions())
+      binding.quickScan.isChecked = false
       binding.keyboardMode.isChecked = false
       binding.tuningNotice.setText(R.string.tuning_baseline_draft)
     }
     binding.tuningApply.setOnClickListener {
       form.read()?.let { options ->
         store.save(options)
+        store.quickScanEnabled = binding.quickScan.isChecked
         keyboard.enabled = binding.keyboardMode.isChecked
         setResult(RESULT_OK)
         finish()
@@ -48,7 +51,10 @@ internal class TuningActivity : AppCompatActivity() {
 
   override fun onSaveInstanceState(outState: Bundle) {
     if (::form.isInitialized) outState.putBundle("tuning_draft", form.saveDraft())
-    if (::binding.isInitialized) outState.putBoolean("keyboard_draft", binding.keyboardMode.isChecked)
+    if (::binding.isInitialized) {
+      outState.putBoolean("keyboard_draft", binding.keyboardMode.isChecked)
+      outState.putBoolean("quick_scan_draft", binding.quickScan.isChecked)
+    }
     super.onSaveInstanceState(outState)
   }
 }

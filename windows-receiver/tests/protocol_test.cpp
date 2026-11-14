@@ -1,13 +1,17 @@
 #include "../src/protocol.hpp"
+
 #include <iostream>
 #include <stdexcept>
 
 namespace {
 int checks = 0;
-void check(bool pass) { ++checks; if (!pass) throw std::runtime_error("check " + std::to_string(checks)); }
+void check(bool pass) {
+  ++checks;
+  if (!pass) throw std::runtime_error("check " + std::to_string(checks));
+}
 const std::string id = "12345678-1234-1234-1234-123456789abc";
 std::string packet(const std::string& hex) { return "DATA " + id + " " + hex; }
-}
+}  // namespace
 int main() {
   try {
     auto number = scan::decode(packet("303031323334353637383930313233343536"));
@@ -39,21 +43,33 @@ int main() {
     check(events.back().ki.dwFlags == KEYEVENTF_KEYUP);
     scan::DeliveryCache cache;
     int calls = 0;
-    auto sender = [&calls](const auto&) { ++calls; return "OK"; };
-    check(cache.submit(*number, sender) == std::make_pair(std::string("OK"), true));
-    check(cache.submit(*number, sender) == std::make_pair(std::string("OK"), false));
+    auto sender = [&calls](const auto&) {
+      ++calls;
+      return "OK";
+    };
+    check(cache.submit(*number, sender) ==
+          std::make_pair(std::string("OK"), true));
+    check(cache.submit(*number, sender) ==
+          std::make_pair(std::string("OK"), false));
     check(calls == 1);
-    auto conflicting = *number; conflicting.text = L"different";
+    auto conflicting = *number;
+    conflicting.text = L"different";
     check(cache.submit(conflicting, sender).first == "INVALID");
     check(calls == 1);
-    auto another = *number; another.id[0] = 'a';
+    auto another = *number;
+    another.id[0] = 'a';
     check(cache.submit(another, sender).second);
     check(calls == 2);
-    auto partial = *number; partial.id[0] = 'b';
-    check(cache.submit(partial, [](const auto&) { return "PARTIAL"; }).first == "PARTIAL");
+    auto partial = *number;
+    partial.id[0] = 'b';
+    check(cache.submit(partial, [](const auto&) { return "PARTIAL"; }).first ==
+          "PARTIAL");
     check(cache.submit(partial, sender).first == "PARTIAL");
     check(calls == 2);
     std::cout << "PASS " << checks << " protocol and keyboard-event checks\n";
     return 0;
-  } catch (const std::exception& error) { std::cerr << "FAIL " << error.what() << '\n'; return 1; }
+  } catch (const std::exception& error) {
+    std::cerr << "FAIL " << error.what() << '\n';
+    return 1;
+  }
 }

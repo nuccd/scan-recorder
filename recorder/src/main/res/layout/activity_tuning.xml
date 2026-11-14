@@ -12,6 +12,12 @@
       <TextView android:id="@+id/tuning_notice" android:layout_width="match_parent" android:layout_height="wrap_content"
           android:paddingTop="8dp" android:paddingBottom="12dp" android:text="@string/tuning_draft_notice"
           android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+      <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/quick_scan"
+          android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp"
+          android:text="@string/quick_scan" />
+      <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+          android:text="@string/quick_scan_help" android:paddingBottom="12dp"
+          android:textAppearance="@style/TextAppearance.Material3.BodySmall" />
       <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/keyboard_mode"
           android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp"
           android:text="@string/keyboard_mode" />

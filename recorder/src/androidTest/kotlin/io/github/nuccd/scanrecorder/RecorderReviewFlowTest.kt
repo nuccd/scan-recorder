@@ -21,10 +21,18 @@ internal class RecorderReviewFlowTest {
   private val databaseName = "review-test-${UUID.randomUUID()}.db"
   private val savedState = SavedStateHandle()
   private val viewModels = ViewModelStore()
+  private val tuning = TuningSettingsStore(application)
+  private val keyboard = KeyboardSettingsStore(application)
+  private var originalQuickScan = false
+  private var originalKeyboard = false
   private lateinit var model: RecorderViewModel
 
   @Before
   fun open() {
+    originalQuickScan = tuning.quickScanEnabled
+    originalKeyboard = keyboard.enabled
+    tuning.quickScanEnabled = false
+    keyboard.enabled = false
     onMain {
       model = RecorderViewModel(application, savedState, databaseName)
       viewModels.put("test", model)
@@ -35,6 +43,8 @@ internal class RecorderReviewFlowTest {
   @After
   fun close() {
     onMain { viewModels.clear() }
+    tuning.quickScanEnabled = originalQuickScan
+    keyboard.enabled = originalKeyboard
     application.deleteDatabase(databaseName)
   }
 
@@ -49,6 +59,31 @@ internal class RecorderReviewFlowTest {
     assertNull(state().pendingScan)
     assertFalse(savedState.contains("pending_scan_value"))
     assertEquals(0, persistentRecords().size)
+  }
+
+  @Test
+  fun quickScanSavesWithoutReviewAndReportsBothDuplicateOutcomes() {
+    tuning.quickScanEnabled = true
+    onMain { model.offerScan("00123\n中文") }
+    awaitReady()
+    assertNull(state().pendingScan)
+    assertFalse(savedState.contains("pending_scan_value"))
+    assertEquals(listOf("00123\n中文"), persistentRecords().map { it.value })
+
+    onMain { model.offerScan("00123\n中文") }
+    awaitReady()
+    assertEquals(RecorderEvent.QuickScanDuplicate(listOf(1)), model.events.value?.take())
+    assertNull(state().pendingScan)
+    assertEquals(1, persistentRecords().size)
+
+    val batch = requireNotNull(state().snapshot).batch.id
+    onMain { model.setDuplicates(batch, true) }
+    awaitReady()
+    onMain { model.offerScan("00123\n中文") }
+    awaitReady()
+    assertEquals(RecorderEvent.Saved(2, true, listOf(1)), model.events.value?.take())
+    assertEquals(2, persistentRecords().size)
+    assertNull(state().pendingScan)
   }
 
   @Test

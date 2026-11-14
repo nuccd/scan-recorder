@@ -27,11 +27,14 @@ internal class TuningSettingsUiTest {
   private lateinit var original: ScanTuningOptions
   private lateinit var activity: TuningActivity
   private var originalKeyboard = false
+  private var originalQuickScan = false
 
   @Before
   fun prepare() {
     store = TuningSettingsStore(instrumentation.targetContext)
     original = store.load()
+    originalQuickScan = store.quickScanEnabled
+    store.quickScanEnabled = false
     originalKeyboard = KeyboardSettingsStore(instrumentation.targetContext).enabled
     KeyboardSettingsStore(instrumentation.targetContext).enabled = false
     store.save(ScanTuningOptions())
@@ -41,6 +44,7 @@ internal class TuningSettingsUiTest {
   fun finish() {
     if (::activity.isInitialized) instrumentation.runOnMainSync { activity.finish() }
     if (::original.isInitialized) store.save(original)
+    store.quickScanEnabled = originalQuickScan
     KeyboardSettingsStore(instrumentation.targetContext).enabled = originalKeyboard
   }
 
@@ -50,6 +54,7 @@ internal class TuningSettingsUiTest {
     onMain {
       select(R.id.tuning_decoder, ScanDecoderMode.NATIVE.ordinal)
       checked(R.id.keyboard_mode, true)
+      checked(R.id.quick_scan, true)
       select(R.id.tuning_formats, ScanFormatScope.LINEAR.ordinal)
       select(R.id.tuning_resolution, ScanResolution.FULL_HD.ordinal)
       input(R.id.tuning_frames_input, "4")
@@ -87,6 +92,7 @@ internal class TuningSettingsUiTest {
       store.load()
     )
     assertTrue(activity.isFinishing)
+    assertTrue(store.quickScanEnabled)
     assertTrue(KeyboardSettingsStore(instrumentation.targetContext).enabled)
   }
 
@@ -94,11 +100,13 @@ internal class TuningSettingsUiTest {
   fun restoringDefaultsOnlyChangesTheDraftAndCancellationPreservesTheSavedOptions() {
     val before = ScanTuningOptions(minimumFrames = 5, nativeTryDownscale = true, defaultZoomRatio = 4.5f)
     store.save(before)
+    store.quickScanEnabled = true
     KeyboardSettingsStore(instrumentation.targetContext).enabled = true
     launch()
     onMain {
       click(R.id.tuning_reset)
       assertFalse(activity.findViewById<MaterialSwitch>(R.id.keyboard_mode).isChecked)
+      assertFalse(activity.findViewById<MaterialSwitch>(R.id.quick_scan).isChecked)
       assertEquals("3", activity.findViewById<EditText>(R.id.tuning_frames_input).text.toString())
       assertEquals("2.3", activity.findViewById<EditText>(R.id.tuning_default_zoom_input).text.toString())
       assertTrue(activity.findViewById<TextView>(R.id.tuning_notice).text.toString().contains("尚未应用"))
@@ -106,6 +114,7 @@ internal class TuningSettingsUiTest {
       click(R.id.tuning_cancel)
     }
     assertEquals(before, store.load())
+    assertTrue(store.quickScanEnabled)
     assertTrue(KeyboardSettingsStore(instrumentation.targetContext).enabled)
   }
 

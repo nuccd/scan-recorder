@@ -17,6 +17,7 @@ import androidx.core.net.toUri
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.isVisible
 import androidx.lifecycle.ViewModelProvider
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
@@ -152,7 +153,11 @@ internal class MainActivity : AppCompatActivity() {
     }
     binding.scanner.setAmbiguityListener { ambiguous ->
       if (cameraActive && model.state.value?.pendingScan == null) {
-        binding.status.setText(if (ambiguous) R.string.multiple_codes else R.string.scanning)
+        if (ambiguous) {
+          binding.status.setText(R.string.multiple_codes)
+        } else if (binding.status.text == getText(R.string.multiple_codes)) {
+          binding.status.setText(R.string.scanning)
+        }
       }
     }
   }
@@ -207,10 +212,12 @@ internal class MainActivity : AppCompatActivity() {
   }
 
   private fun renderReview(state: RecorderState) {
-    binding.scanner.setResultDeliveryEnabled(state.pendingScan == null)
+    binding.scanner.setResultDeliveryEnabled(state.snapshot != null && !state.working && state.pendingScan == null)
     val hadReview = review.isShowing
     review.render(state)
     if (state.pendingScan != null) binding.status.setText(R.string.awaiting_confirmation)
+    val processing = state.working && state.pendingScan == null && cameraActive
+    binding.quickScanStatus.setText(if (processing) R.string.quick_scan_working else R.string.quick_scan_active)
     if (state.pendingScan == null && hadReview) {
       binding.status.setText(if (cameraActive && scanRequested) R.string.scanning else R.string.paused)
     }
@@ -269,6 +276,7 @@ internal class MainActivity : AppCompatActivity() {
     binding.scanner.setTuningOptions(options)
     cameraUi.setDefaultZoomRatio(options.defaultZoomRatio)
     tuningUi.setOptions(options)
+    binding.quickScanStatus.isVisible = model.quickScanEnabled
     model.refreshKeyboard()
   }
 
@@ -374,14 +382,24 @@ internal class MainActivity : AppCompatActivity() {
   private fun handleEvent(event: RecorderEvent) {
     when (event) {
       is RecorderEvent.Saved -> {
-        binding.status.text = getString(R.string.saved_record, event.count)
+        val message = if (event.duplicateRows.isEmpty()) {
+          getString(R.string.saved_record, event.count)
+        } else {
+          getString(R.string.quick_scan_saved_duplicate, event.count, event.duplicateRows.joinToString("、"))
+        }
+        binding.status.text = message
         if (event.scanned) {
           binding.root.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
           binding.records.smoothScrollToPosition(event.count - 1)
-          notice(getString(R.string.saved_record, event.count))
+          notice(message)
         }
       }
       RecorderEvent.Duplicate -> binding.status.setText(R.string.duplicate_record)
+      is RecorderEvent.QuickScanDuplicate -> {
+        val message = getString(R.string.quick_scan_duplicate, event.rows.joinToString("、"))
+        binding.status.text = message
+        notice(message)
+      }
       is RecorderEvent.Deleted -> {
         snackbar?.dismiss()
         snackbar = Snackbar.make(binding.root, R.string.record_deleted, Snackbar.LENGTH_LONG)

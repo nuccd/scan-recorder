@@ -48,6 +48,12 @@
   <string name="confirm_continue">确认，继续扫码</string>
   <string name="scan_cancelled">已取消本次录入，未保存</string>
   <string name="duplicate_scan_title">重复扫码</string>
+  <string name="quick_scan">快速扫码</string>
+  <string name="quick_scan_help">稳定识别后直接保存，关闭时逐条确认。禁止录入的重复码会显示已有行号并跳过。开启扫码枪模式后，新记录也会尝试发送到电脑。</string>
+  <string name="quick_scan_active">快速扫码已开启 · 识别后自动保存</string>
+  <string name="quick_scan_working">快速扫码 · 正在处理记录，请稍候</string>
+  <string name="quick_scan_duplicate">与已录入第 %1$s 行重复，已跳过</string>
+  <string name="quick_scan_saved_duplicate">已保存第 %1$d 条记录，与第 %2$s 行重复</string>
   <string name="duplicate_scan_blocked">与已录入第 %1$s 行重复。本次不会新增记录，请确认后继续扫码。</string>
   <string name="duplicate_scan_allowed">与已录入第 %1$s 行重复。当前允许重复，确认后将新增一条记录。</string>
   <string name="confirm_save_failed">保存失败，尚未录入。可以重试或取消：%1$s</string>
