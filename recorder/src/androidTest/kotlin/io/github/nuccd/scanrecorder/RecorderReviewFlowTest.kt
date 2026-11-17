@@ -14,13 +14,16 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.util.UUID
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.TimeUnit
 
 internal class RecorderReviewFlowTest {
   private val instrumentation = InstrumentationRegistry.getInstrumentation()
   private val application = instrumentation.targetContext.applicationContext as Application
   private val databaseName = "review-test-${UUID.randomUUID()}.db"
-  private val savedState = SavedStateHandle()
+  private var savedState = SavedStateHandle()
   private val viewModels = ViewModelStore()
+  private val openedModels = mutableListOf<RecorderViewModel>()
   private val tuning = TuningSettingsStore(application)
   private val keyboard = KeyboardSettingsStore(application)
   private var originalQuickScan = false
@@ -34,18 +37,20 @@ internal class RecorderReviewFlowTest {
     tuning.quickScanEnabled = false
     keyboard.enabled = false
     onMain {
-      model = RecorderViewModel(application, savedState, databaseName)
-      viewModels.put("test", model)
+      model = createModel(savedState)
     }
     awaitReady()
   }
 
   @After
   fun close() {
-    onMain { viewModels.clear() }
-    tuning.quickScanEnabled = originalQuickScan
-    keyboard.enabled = originalKeyboard
-    application.deleteDatabase(databaseName)
+    try {
+      closeModels()
+      application.deleteDatabase(databaseName)
+    } finally {
+      tuning.quickScanEnabled = originalQuickScan
+      keyboard.enabled = originalKeyboard
+    }
   }
 
   @Test
@@ -101,6 +106,99 @@ internal class RecorderReviewFlowTest {
   }
 
   @Test
+  fun failedConfirmationRetainsTheCandidateAndSavedStateUntilASuccessfulRetry() {
+    val batch = requireNotNull(state().snapshot).batch.id
+    onMain { model.save(batch, "already saved") }
+    awaitReady()
+    val value = " 00123\n中文\\n "
+    onMain { model.offerScan(value) }
+    val before = state()
+    val persistedState = savedValues()
+    executeSql(
+      "CREATE TRIGGER reject_review_save BEFORE INSERT ON records " +
+        "BEGIN SELECT RAISE(ABORT, 'review-save-failure'); END"
+    )
+
+    onMain { model.confirmScan() }
+    awaitReady()
+
+    assertEquals(before.snapshot, state().snapshot)
+    assertEquals(PendingScan(batch, value), state().pendingScan)
+    assertEquals(persistedState, savedValues())
+    assertEquals(before.snapshot, persistentSnapshot())
+    val failure = takeEvent()
+    assertTrue("A failed insert must report a storage failure", failure is RecorderEvent.Failure)
+    failure as RecorderEvent.Failure
+    assertEquals(R.string.storage_failed, failure.resource)
+    assertTrue(failure.detail.contains("review-save-failure"))
+
+    executeSql("DROP TRIGGER reject_review_save")
+    onMain { model.confirmScan() }
+    awaitReady()
+    onMain { model.confirmScan() }
+    awaitReady()
+
+    assertEquals(listOf("already saved", value), persistentRecords().map { it.value })
+    assertNull(state().pendingScan)
+    assertFalse(savedState.contains("pending_scan_batch"))
+    assertFalse(savedState.contains("pending_scan_value"))
+    assertEquals(RecorderEvent.Saved(2, true), takeEvent())
+  }
+
+  @Test
+  fun recreatedCandidateIsConfirmedExactlyOnceInItsOriginalBatchWhenDuplicatesAreAllowed() {
+    val firstBatch = requireNotNull(state().snapshot).batch.id
+    onMain { model.save(firstBatch, "keep in first batch") }
+    awaitReady()
+    onMain { model.newBatch("restored review") }
+    awaitReady()
+    val batch = requireNotNull(state().snapshot).batch.id
+    onMain {
+      model.setDuplicates(batch, true)
+      model.save(batch, "already saved")
+    }
+    awaitReady()
+    val value = " 00123\n中文\\n "
+    onMain { model.offerScan(value) }
+    val before = state()
+    val restoredValues = savedValues()
+
+    closeModels()
+    onMain {
+      savedState = SavedStateHandle(restoredValues)
+      model = createModel(savedState)
+    }
+    awaitReady()
+
+    assertEquals(before.snapshot, state().snapshot)
+    assertEquals(PendingScan(batch, value), state().pendingScan)
+    assertEquals(restoredValues, savedValues())
+    assertEquals(before.snapshot, persistentSnapshot())
+    assertTrue(requireNotNull(state().snapshot).batch.allowDuplicates)
+    onMain {
+      model.confirmScan()
+      model.confirmScan()
+      model.offerScan("must not replace the pending candidate")
+    }
+    awaitReady()
+    onMain { model.confirmScan() }
+    awaitReady()
+
+    val after = persistentSnapshot()
+    assertEquals(batch, after.batch.id)
+    assertEquals(listOf("already saved", value), after.records.map { it.value })
+    assertEquals(3L, after.totalRecordCount)
+    RecorderStore(application, databaseName).use { store ->
+      assertEquals(listOf("keep in first batch"), store.select(firstBatch).records.map { it.value })
+      store.select(batch)
+    }
+    assertNull(state().pendingScan)
+    assertFalse(savedState.contains("pending_scan_batch"))
+    assertFalse(savedState.contains("pending_scan_value"))
+    assertEquals(RecorderEvent.Saved(2, true), takeEvent())
+  }
+
+  @Test
   fun duplicateIsHeldForAcknowledgementAndReportsEveryExistingSequence() {
     onMain {
       model.offerScan("A")
@@ -129,17 +227,14 @@ internal class RecorderReviewFlowTest {
   fun pendingCandidateCanBeRestoredWithoutBeingAutomaticallySaved() {
     val batchId = requireNotNull(state().snapshot).batch.id
     val restoredState = SavedStateHandle(mapOf("pending_scan_batch" to batchId, "pending_scan_value" to "QR\n中文"))
-    lateinit var restored: RecorderViewModel
+    closeModels()
     onMain {
-      restored = RecorderViewModel(application, restoredState, databaseName)
-      viewModels.put("restored", restored)
+      savedState = restoredState
+      model = createModel(savedState)
     }
-    assertEquals("QR\n中文", restored.state.value?.pendingScan?.value)
+    awaitReady()
+    assertEquals("QR\n中文", state().pendingScan?.value)
     assertEquals(0, persistentRecords().size)
-  }
-
-  private fun persistentRecords(): List<ScanRecord> = RecorderStore(application, databaseName).use {
-    it.load("unused").records
   }
 
   @Test
@@ -160,6 +255,46 @@ internal class RecorderReviewFlowTest {
     assertFalse(savedState.contains("pending_scan_value"))
     assertFalse(savedState.contains("pending_scan_batch"))
     assertTrue(persistentRecords().isEmpty())
+  }
+
+  private fun createModel(handle: SavedStateHandle): RecorderViewModel =
+    RecorderViewModel(application, handle, databaseName).also {
+      openedModels.add(it)
+      viewModels.put("test", it)
+    }
+
+  private fun closeModels() {
+    // onCleared queues SQLite close; wait for it before reopening or deleting the database.
+    val workerField = RecorderViewModel::class.java.getDeclaredField("worker").apply { isAccessible = true }
+    val workers = openedModels.map { workerField.get(it) as ExecutorService }
+    onMain { viewModels.clear() }
+    for (worker in workers) {
+      assertTrue("ViewModel worker did not close", worker.awaitTermination(5, TimeUnit.SECONDS))
+    }
+    openedModels.clear()
+    instrumentation.waitForIdleSync()
+  }
+
+  private fun savedValues(): Map<String, Any?> {
+    var values = emptyMap<String, Any?>()
+    onMain { values = savedState.keys().associateWith { savedState.get<Any?>(it) } }
+    return values
+  }
+
+  private fun persistentSnapshot(): RecorderSnapshot = RecorderStore(application, databaseName).use {
+    it.load("unused")
+  }
+
+  private fun persistentRecords(): List<ScanRecord> = persistentSnapshot().records
+
+  private fun executeSql(sql: String) = RecorderStore(application, databaseName).use {
+    it.writableDatabase.execSQL(sql)
+  }
+
+  private fun takeEvent(): RecorderEvent? {
+    var event: RecorderEvent? = null
+    onMain { event = model.events.value?.take() }
+    return event
   }
 
   private fun state(): RecorderState {
