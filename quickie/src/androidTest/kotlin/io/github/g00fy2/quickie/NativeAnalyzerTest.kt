@@ -23,11 +23,11 @@ import java.util.concurrent.atomic.AtomicInteger
 internal class NativeAnalyzerTest {
   @Test
   @OptIn(ExperimentalGetImage::class)
-  fun nativeOnlyCallbacksRunOnMainBeforeTheImageIsClosedExactlyOnce() {
+  fun nativeOnlyQrCallbacksRunOnMainBeforeTheImageIsClosedExactlyOnce() {
     val source = EmptyNativeImage()
     val completed = CountDownLatch(1)
     val analyzer = QRCodeAnalyzer(
-      intArrayOf(Barcode.FORMAT_CODE_128),
+      intArrayOf(Barcode.FORMAT_QR_CODE),
       {},
       { throw AssertionError(it) },
       {},
@@ -39,7 +39,7 @@ internal class NativeAnalyzerTest {
         assertEquals(0, metrics.mlKitCount)
         completed.countDown()
       },
-      tuning = ScanTuningOptions(decoderMode = ScanDecoderMode.NATIVE)
+      tuning = ScanTuningOptions(decoderMode = ScanDecoderMode.NATIVE, formatScope = ScanFormatScope.QR)
     )
     try {
       analyzer.analyze(source.image)

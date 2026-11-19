@@ -1,6 +1,6 @@
 package io.github.g00fy2.quickie
 
-/** Decoders used by the embedded scanner. Native-only mode supports linear barcodes. */
+/** Decoders used by the embedded scanner. NATIVE uses only ZXing-C++. */
 public enum class ScanDecoderMode { COMBINED, ML_KIT, NATIVE }
 
 /** Restricts decoding formats independently of the visible scan-frame shape. */
@@ -41,8 +41,5 @@ public data class ScanTuningOptions(
     require(focusWaitMillis in 0L..1000L) { "focusWaitMillis must be 0..1000" }
     require(nativeMinLineCount in 1..5) { "nativeMinLineCount must be 1..5" }
     require(defaultZoomRatio.isFinite() && defaultZoomRatio in 1f..10f) { "defaultZoomRatio must be finite and 1..10" }
-    require(decoderMode != ScanDecoderMode.NATIVE || formatScope != ScanFormatScope.QR) {
-      "QR scope requires ML Kit for standard QR codes"
-    }
   }
 }

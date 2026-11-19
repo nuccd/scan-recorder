@@ -70,15 +70,9 @@ internal class TuningForm(private val binding: ActivityTuningBinding) {
     val values = numbers.map(::readNumber)
     val zoom = readZoomRatio()
     val windowValid = validWindow(values)
-    val unsupported = binding.tuningDecoder.selectedItemPosition == ScanDecoderMode.NATIVE.ordinal &&
-      binding.tuningFormats.selectedItemPosition == ScanFormatScope.QR.ordinal
     val numericValid = values.none { it == null } && windowValid && zoom != null
-    binding.tuningError.text = when {
-      unsupported -> binding.root.context.getString(R.string.tuning_native_qr_error)
-      !numericValid -> binding.root.context.getString(R.string.tuning_input_error)
-      else -> ""
-    }
-    return if (numericValid && !unsupported) options(values.map { requireNotNull(it) }, requireNotNull(zoom)) else null
+    binding.tuningError.text = if (numericValid) "" else binding.root.context.getString(R.string.tuning_input_error)
+    return if (numericValid) options(values.map { requireNotNull(it) }, requireNotNull(zoom)) else null
   }
 
   private fun options(values: List<Long>, zoom: Float): ScanTuningOptions = ScanTuningOptions(

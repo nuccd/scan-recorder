@@ -33,6 +33,9 @@
           android:labelFor="@id/tuning_formats" android:text="@string/tuning_formats_label" />
       <Spinner android:id="@+id/tuning_formats" android:layout_width="match_parent" android:layout_height="48dp" />
       <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+          android:text="@string/tuning_formats_help" android:paddingBottom="8dp"
+          android:textAppearance="@style/TextAppearance.Material3.BodySmall" />
+      <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
           android:labelFor="@id/tuning_resolution" android:text="@string/tuning_resolution_label" />
       <Spinner android:id="@+id/tuning_resolution" android:layout_width="match_parent" android:layout_height="48dp" />
       <com.google.android.material.textfield.TextInputLayout android:id="@+id/tuning_default_zoom"

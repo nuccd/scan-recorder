@@ -18,26 +18,49 @@ import org.junit.Test
 import java.lang.reflect.Proxy
 import java.nio.ByteBuffer
 
-internal class MicroQrDecoderTest {
+internal class QrFamilyDecoderTest {
   @Test
-  fun qrScopeDecodesMicroQrAndLeavesOrdinaryQrToMlKit() {
-    val decoder = decoderFor(ScanFormatScope.QR)
-    val defaultDecoder = decoderFor(ScanFormatScope.ALL)
-    for ((payload, pattern) in listOf("00742" to M1, M4_TEXT to M4)) {
+  fun mixedEnginesDecodeMicroVersionsAndRectangularQrInBothApplicableScopes() {
+    val fixtures = with(QrFamilyFixtures) { listOf(M1, M2, M3, M4, RECTANGULAR) }
+    val decoders = listOf(ScanFormatScope.ALL, ScanFormatScope.QR).associateWith { decoderFor(it) }
+    for (sample in fixtures) {
       for (inverted in listOf(false, true)) {
-        val bitmap = fixture(pattern, inverted)
+        val bitmap = fixture(sample, inverted)
         try {
-          assertEquals(payload, decoder.decode(bitmap).single().rawValue)
-          assertTrue(defaultDecoder.decode(bitmap).isEmpty())
+          decoders.forEach { (scope, decoder) ->
+            val decoded = decoder.decode(bitmap).map { it.rawValue }
+            assertEquals("$scope, inverted=$inverted", listOf(sample.payload), decoded)
+          }
         } finally {
           bitmap.recycle()
         }
       }
     }
+  }
 
-    val ordinary = fixture(ORDINARY_QR)
+  @Test
+  fun nativeOnlyFindsOrdinaryMicroAndRectangularQrTogetherAndLinearScopeIgnoresThem() {
+    val codes = with(QrFamilyFixtures) { listOf(ORDINARY, M4, RECTANGULAR) }
+    val bitmap = fixture(codes)
     try {
-      assertTrue(decoder.decode(ordinary).isEmpty())
+      val expected = codes.map { it.payload }.toSet()
+      for (scope in listOf(ScanFormatScope.ALL, ScanFormatScope.QR)) {
+        val decoder = decoderFor(scope, ScanDecoderMode.NATIVE)
+        assertEquals(scope.name, expected, decoder.decode(bitmap).map { it.rawValue }.toSet())
+      }
+      assertTrue(decoderFor(ScanFormatScope.LINEAR).decode(bitmap).isEmpty())
+    } finally {
+      bitmap.recycle()
+    }
+  }
+
+  @Test
+  fun mixedEnginesLeaveOrdinaryQrOutOfTheNativePass() {
+    val ordinary = fixture(QrFamilyFixtures.ORDINARY)
+    try {
+      for (scope in listOf(ScanFormatScope.ALL, ScanFormatScope.QR)) {
+        assertTrue(decoderFor(scope).decode(ordinary).isEmpty())
+      }
     } finally {
       ordinary.recycle()
     }
@@ -46,18 +69,19 @@ internal class MicroQrDecoderTest {
   @Test
   fun rotatedCameraLuminanceKeepsMicroQrBoundsInTheScanWindow() {
     val decoder = decoderFor(ScanFormatScope.QR)
-    val bitmap = fixture(M4)
+    val sample = QrFamilyFixtures.M4
+    val bitmap = fixture(sample)
     val expected = RectF(
       LEFT.toFloat(),
       TOP.toFloat(),
-      (LEFT + MODULE * M4.first().length).toFloat(),
-      (TOP + MODULE * M4.size).toFloat()
+      (LEFT + MODULE * sample.modules.first().length).toFloat(),
+      (TOP + MODULE * sample.modules.size).toFloat()
     )
     try {
       for (rotation in listOf(0, 90, 180, 270)) {
         val source = CameraLuminance(bitmap, rotation)
         val result = decoder.decode(source.image).single()
-        assertEquals(M4_TEXT, result.rawValue)
+        assertEquals(sample.payload, result.rawValue)
         val toView = requireNotNull(
           BarcodeCoordinates.imageToView(Matrix(), rotation, bitmap.width, bitmap.height, Matrix())
         )
@@ -79,92 +103,46 @@ internal class MicroQrDecoderTest {
     }
   }
 
-  private fun decoderFor(scope: ScanFormatScope): NativeBarcodeDecoder {
-    val tuning = ScanTuningOptions(formatScope = scope)
+  private fun decoderFor(
+    scope: ScanFormatScope,
+    engine: ScanDecoderMode = ScanDecoderMode.COMBINED
+  ): NativeBarcodeDecoder {
+    val tuning = ScanTuningOptions(formatScope = scope, decoderMode = engine)
     val plan = ScanDecodePlan(tuning, intArrayOf(Barcode.FORMAT_ALL_FORMATS))
     return NativeBarcodeDecoder(plan.nativeFormats, tuning)
   }
 
-  private fun fixture(pattern: List<String>, inverted: Boolean = false): Bitmap {
-    val bitmap = Bitmap.createBitmap(320, 248, Bitmap.Config.ARGB_8888)
+  private fun fixture(sample: QrFixture, inverted: Boolean = false): Bitmap = fixture(listOf(sample), inverted)
+
+  private fun fixture(samples: List<QrFixture>, inverted: Boolean = false): Bitmap {
+    val width = maxOf(320, 2 * LEFT + MODULE * samples.maxOf { it.modules.first().length })
+    val slotHeight = maxOf(248, 2 * TOP + MODULE * samples.maxOf { it.modules.size })
+    val bitmap = Bitmap.createBitmap(width, samples.size * slotHeight, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
     canvas.drawColor(if (inverted) Color.BLACK else Color.WHITE)
     val paint = Paint().apply { color = if (inverted) Color.WHITE else Color.BLACK }
+    samples.forEachIndexed { index, sample ->
+      drawModules(canvas, paint, sample.modules, TOP + index * slotHeight)
+    }
+    return bitmap
+  }
+
+  private fun drawModules(canvas: Canvas, paint: Paint, pattern: List<String>, top: Int) {
     pattern.forEachIndexed { row, modules ->
       modules.forEachIndexed { column, module ->
         if (module == '1') {
           val x = (LEFT + column * MODULE).toFloat()
-          val y = (TOP + row * MODULE).toFloat()
+          val y = (top + row * MODULE).toFloat()
           canvas.drawRect(x, y, x + MODULE, y + MODULE, paint)
         }
       }
     }
-    return bitmap
   }
 
   private companion object {
     const val LEFT = 61
     const val TOP = 41
     const val MODULE = 8
-    const val M4_TEXT = "MICRO-QR-0123"
-
-    // Generated independently with Segno 1.6.6 using mask=0 and boost_error=False.
-    // The bitmap background supplies the quiet zone.
-    val M1 = listOf(
-      "11111110101",
-      "10000010101",
-      "10111010010",
-      "10111010101",
-      "10111010010",
-      "10000010011",
-      "11111110011",
-      "00000000100",
-      "11000100011",
-      "01110101001",
-      "10011010010"
-    )
-    val M4 = listOf(
-      "11111110101010101",
-      "10000010100110001",
-      "10111010110010000",
-      "10111010000100010",
-      "10111010000111100",
-      "10000010011101100",
-      "11111110100101110",
-      "00000000101010100",
-      "10110100101001011",
-      "01010111000111101",
-      "10101111011110100",
-      "01101101010001111",
-      "11101111001001001",
-      "01100110110111010",
-      "11000110000101000",
-      "01111000101000101",
-      "11011001101111011"
-    )
-    val ORDINARY_QR = listOf(
-      "111111100010101111111",
-      "100000100000101000001",
-      "101110101010001011101",
-      "101110100000101011101",
-      "101110100101101011101",
-      "100000100111001000001",
-      "111111101010101111111",
-      "000000001010000000000",
-      "111011111010111000100",
-      "000101010011000001101",
-      "001111110111010011101",
-      "000011010001110101111",
-      "011010101111000000001",
-      "000000001110000111110",
-      "111111101100101100011",
-      "100000101010000100001",
-      "101110101100111101011",
-      "101110100001000010010",
-      "101110101001001111101",
-      "100000101111110110111",
-      "111111101001001001001"
-    )
   }
 }
 

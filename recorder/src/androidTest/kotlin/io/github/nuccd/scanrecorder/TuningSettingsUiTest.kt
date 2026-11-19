@@ -97,16 +97,26 @@ internal class TuningSettingsUiTest {
   }
 
   @Test
-  fun combinedQrScopeAdvertisesMicroQrAndCanBeApplied() {
+  fun zxingQrScopeCanBeAppliedAndReloaded() {
     launch()
     onMain {
-      val formats = activity.findViewById<Spinner>(R.id.tuning_formats)
-      assertTrue(formats.adapter.getItem(ScanFormatScope.QR.ordinal).toString().contains("Micro QR"))
+      val engines = activity.findViewById<Spinner>(R.id.tuning_decoder)
+      assertEquals("仅 ZXing-C++", engines.adapter.getItem(ScanDecoderMode.NATIVE.ordinal).toString())
+      select(R.id.tuning_decoder, ScanDecoderMode.NATIVE.ordinal)
       select(R.id.tuning_formats, ScanFormatScope.QR.ordinal)
       click(R.id.tuning_apply)
       assertTrue(activity.isFinishing)
     }
-    assertEquals(ScanTuningOptions(formatScope = ScanFormatScope.QR), store.load())
+    val expected = ScanTuningOptions(decoderMode = ScanDecoderMode.NATIVE, formatScope = ScanFormatScope.QR)
+    assertEquals(expected, store.load())
+    launch()
+    onMain {
+      assertEquals(
+        ScanDecoderMode.NATIVE.ordinal,
+        activity.findViewById<Spinner>(R.id.tuning_decoder).selectedItemPosition
+      )
+      assertEquals(ScanFormatScope.QR.ordinal, activity.findViewById<Spinner>(R.id.tuning_formats).selectedItemPosition)
+    }
   }
 
   @Test
@@ -132,7 +142,7 @@ internal class TuningSettingsUiTest {
   }
 
   @Test
-  fun invalidNumbersInconsistentWindowsAndNativeQrCannotBeApplied() {
+  fun invalidNumbersAndInconsistentWindowsCannotBeApplied() {
     launch()
     onMain {
       for (value in listOf("", "999999999999999999999999999999", "-1", "11")) {
@@ -146,11 +156,6 @@ internal class TuningSettingsUiTest {
       input(R.id.tuning_observation_input, "600")
       click(R.id.tuning_apply)
       assertNotNull(activity.findViewById<TextInputLayout>(R.id.tuning_observation_ms).error)
-      input(R.id.tuning_minimum_input, "200")
-      select(R.id.tuning_decoder, ScanDecoderMode.NATIVE.ordinal)
-      select(R.id.tuning_formats, ScanFormatScope.QR.ordinal)
-      click(R.id.tuning_apply)
-      assertTrue(activity.findViewById<TextView>(R.id.tuning_error).text.toString().contains("仅支持一维"))
       assertFalse(activity.isFinishing)
     }
     assertEquals(ScanTuningOptions(), store.load())

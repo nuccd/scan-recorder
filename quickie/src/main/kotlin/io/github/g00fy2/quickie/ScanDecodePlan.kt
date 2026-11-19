@@ -15,14 +15,25 @@ internal class ScanDecodePlan(options: ScanTuningOptions, requestedFormats: IntA
     }.toIntArray()
   }.also { require(it.isNotEmpty()) { "No requested formats match the selected scope" } }
   val useMlKit: Boolean = !embedded || options.decoderMode != ScanDecoderMode.NATIVE
-  val nativeFormats: Set<BarcodeReader.Format> = when {
-    !embedded || options.decoderMode == ScanDecoderMode.ML_KIT -> emptySet()
-    options.formatScope == ScanFormatScope.QR -> setOf(BarcodeReader.Format.MICRO_QR_CODE)
-    else -> LINEAR_FORMATS.filterKeys {
-      Barcode.FORMAT_ALL_FORMATS in mlKitFormats || it in mlKitFormats
-    }.values.toSet()
-  }
+  val nativeFormats: Set<BarcodeReader.Format> =
+    if (embedded && options.decoderMode != ScanDecoderMode.ML_KIT) nativeFormatsFor(options.decoderMode) else emptySet()
   val useNative: Boolean get() = nativeFormats.isNotEmpty()
+
+  private fun nativeFormatsFor(mode: ScanDecoderMode): Set<BarcodeReader.Format> = buildSet {
+    val all = Barcode.FORMAT_ALL_FORMATS in mlKitFormats
+    LINEAR_FORMATS.forEach { (format, native) ->
+      if (all || format in mlKitFormats) add(native)
+    }
+    if (all || Barcode.FORMAT_QR_CODE in mlKitFormats) {
+      add(BarcodeReader.Format.MICRO_QR_CODE)
+      add(BarcodeReader.Format.RMQR_CODE)
+    }
+    if (mode == ScanDecoderMode.NATIVE) {
+      NATIVE_MATRIX_FORMATS.forEach { (format, native) ->
+        if (all || format in mlKitFormats) add(native)
+      }
+    }
+  }
 
   private companion object {
     val LINEAR_FORMATS = mapOf(
@@ -35,6 +46,12 @@ internal class ScanDecodePlan(options: ScanTuningOptions, requestedFormats: IntA
       Barcode.FORMAT_ITF to BarcodeReader.Format.ITF,
       Barcode.FORMAT_UPC_A to BarcodeReader.Format.UPC_A,
       Barcode.FORMAT_UPC_E to BarcodeReader.Format.UPC_E
+    )
+    val NATIVE_MATRIX_FORMATS = mapOf(
+      Barcode.FORMAT_QR_CODE to BarcodeReader.Format.QR_CODE_MODEL_2,
+      Barcode.FORMAT_DATA_MATRIX to BarcodeReader.Format.DATA_MATRIX,
+      Barcode.FORMAT_PDF417 to BarcodeReader.Format.PDF_417,
+      Barcode.FORMAT_AZTEC to BarcodeReader.Format.AZTEC_CODE
     )
   }
 }

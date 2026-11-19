@@ -1,9 +1,10 @@
 <resources>
   <string name="tuning_title">设置</string>
-  <string name="tuning_draft_notice">修改先保存在本页草稿，点击“应用并返回”后生效；取消不保存。识别参数默认沿用 0.4.1，默认变焦倍率为 2.3×。</string>
-  <string name="tuning_baseline_draft">草稿已恢复默认参数，尚未应用。识别参数沿用 0.4.1，默认倍率 2.3×；点击“应用并返回”后才会保存。</string>
+  <string name="tuning_draft_notice">修改先保存在本页草稿，点击“应用并返回”后生效；取消不保存。默认变焦倍率为 2.3×。</string>
+  <string name="tuning_baseline_draft">草稿已恢复默认参数，尚未应用。默认倍率为 2.3×，点击“应用并返回”后才会保存。</string>
   <string name="tuning_decoder_label">识别引擎（默认：双引擎）</string>
   <string name="tuning_formats_label">识别码制（默认：全部；与白框形状分别设置）</string>
+  <string name="tuning_formats_help">仅 QR 系列包括普通 QR、Micro QR 和矩形 rMQR。后两种需启用 ZXing-C++。</string>
   <string name="tuning_resolution_label">请求分析分辨率（默认：720p；实际以相机协商为准）</string>
   <string name="tuning_zoom_label">默认变焦倍率（×）</string>
   <string name="tuning_zoom_help">范围 1.0–10.0，可输入小数；默认 2.3×。实际倍率按相机支持范围裁剪。</string>
@@ -11,12 +12,12 @@
   <string-array name="tuning_decoder_values">
     <item>双引擎：ML Kit + ZXing-C++</item>
     <item>仅 ML Kit</item>
-    <item>仅原生一维码</item>
+    <item>仅 ZXing-C++</item>
   </string-array>
   <string-array name="tuning_format_values">
     <item>全部支持码制</item>
     <item>仅一维条形码</item>
-    <item>仅 QR（双引擎支持 Micro QR）</item>
+    <item>仅 QR 系列</item>
   </string-array>
   <string-array name="tuning_resolution_values">
     <item>720p：1280 × 720</item>
@@ -46,6 +47,5 @@
   <string name="tuning_apply">应用并返回</string>
   <string name="tuning_number_error">请输入 %1$d–%2$d 范围内的整数</string>
   <string name="tuning_window_error">总窗口必须大于或等于最短观察时间</string>
-  <string name="tuning_native_qr_error">原生单引擎模式仅支持一维条形码。扫普通 QR 可选 ML Kit 或双引擎，扫 Micro QR 请选择双引擎。</string>
   <string name="tuning_input_error">请检查红色标记的数值，当前修改尚未保存。</string>
 </resources>
