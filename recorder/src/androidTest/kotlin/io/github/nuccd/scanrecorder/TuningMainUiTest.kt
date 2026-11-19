@@ -8,6 +8,7 @@ import android.widget.EditText
 import android.widget.Spinner
 import androidx.test.platform.app.InstrumentationRegistry
 import io.github.g00fy2.quickie.ScanDecoderMode
+import io.github.g00fy2.quickie.ScanFormatScope
 import io.github.g00fy2.quickie.ScanFrameDiagnostics
 import io.github.g00fy2.quickie.ScanFrameStatus
 import io.github.g00fy2.quickie.ScanResolution
@@ -96,6 +97,7 @@ internal class TuningMainUiTest {
       ui.configure({}) { resets++ }
       assertEquals(View.VISIBLE, binding.tuningButton.visibility)
       assertEquals(View.VISIBLE, binding.tuningPanel.visibility)
+      ui.setOptions(ScanTuningOptions(formatScope = ScanFormatScope.QR))
       ui.onFrame(
         ScanFrameDiagnostics(
           width = 1280,
@@ -118,9 +120,12 @@ internal class TuningMainUiTest {
         )
       )
       assertTrue(binding.tuningDiagnostics.text.contains("1280×960"))
+      val nativeMeasurement = activity.getString(R.string.tuning_engine_measurement, 20, 1)
+      assertTrue(binding.tuningDiagnostics.text.contains("原生 $nativeMeasurement"))
       binding.tuningCopyButton.performClick()
       val report = clipboard()
       assertTrue(report.contains("frameDecodeMs=40"))
+      assertTrue(report.contains("formatScope=QR"))
       assertTrue(report.contains("minimumFrames=3"))
       assertTrue(report.contains("MULTIPLE_VALUES=0"))
       ui.setOptions(ScanTuningOptions(decoderMode = ScanDecoderMode.ML_KIT))

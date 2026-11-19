@@ -29,7 +29,7 @@ internal class QRCodeAnalyzer(
   private val mainExecutor = Executor { mainHandler.post(it) }
   private val scannerLock = Any()
   private val barcodeScannerDelegate = lazy {
-    val formats = plan.formats
+    val formats = plan.mlKitFormats
     BarcodeScanning.getClient(
       BarcodeScannerOptions.Builder().setBarcodeFormats(formats.first(), *formats.drop(1).toIntArray()).build()
     )
@@ -38,7 +38,7 @@ internal class QRCodeAnalyzer(
     check(!closed) { "Analyzer is closed" }
     barcodeScannerDelegate.value
   }
-  private val linearDecoder by lazy { LinearBarcodeDecoder(plan.formats, tuning) }
+  private val nativeDecoder by lazy { NativeBarcodeDecoder(plan.nativeFormats, tuning) }
   private var nativeAvailable = true
 
   @Volatile private var failureTimestamp: Long? = null
@@ -143,14 +143,14 @@ internal class QRCodeAnalyzer(
   private fun decodeNative(image: ImageProxy): List<DecodedBarcode> {
     if (!nativeAvailable) return emptyList()
     return try {
-      linearDecoder.decode(image)
+      nativeDecoder.decode(image)
     } catch (error: LinkageError) {
       nativeAvailable = false
-      Log.w("SCAN_DIAG", "native linear decoder unavailable type=${error.javaClass.simpleName}")
+      Log.w("SCAN_DIAG", "native decoder unavailable type=${error.javaClass.simpleName}")
       emptyList()
     } catch (exception: Exception) {
       nativeAvailable = false
-      Log.w("SCAN_DIAG", "native linear decoder disabled type=${exception.javaClass.simpleName}")
+      Log.w("SCAN_DIAG", "native decoder disabled type=${exception.javaClass.simpleName}")
       emptyList()
     }
   }

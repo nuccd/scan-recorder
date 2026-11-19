@@ -2,7 +2,7 @@
 
 「扫码记录」用于连续识别条形码与二维码，支持逐条确认和快速扫码。记录按批次保存在手机，可导出 TXT / logcat，也可通过 USB 输入 Windows 当前输入框。电脑接收程序当前为 0.5.3。 [项目首页](../README.md)
 
-App 包名为 `io.github.nuccd.scanrecorder`，`main` 只维护一个包含设置与调优功能的 App。ML Kit 模型随 APK 提供，ZXing-C++ 在本地补充一维码解码，不需要联网下载模型。最低 Android 版本为 6.0（API 23）。
+App 包名为 `io.github.nuccd.scanrecorder`，`main` 只维护一个包含设置与调优功能的 App。ML Kit 模型随 APK 提供，ZXing-C++ 在本地补充一维码和 Micro QR 解码。最低 Android 版本为 6.0（API 23）。
 
 ## 1. 连续扫码与人工确认
 
@@ -20,6 +20,8 @@ App 包名为 `io.github.nuccd.scanrecorder`，`main` 只维护一个包含设�
 | 二维格式 | QR Code、Data Matrix、PDF417、Aztec |
 
 默认双引擎会合并 ML Kit 和原生一维码结果，再统一判断完整边界、框内不同内容数及稳定性。白框是结果接收范围，不表示引擎仅裁剪白框内图像解码。框内有多个不同内容时提示对准一个；同一帧两个引擎读出相同内容只算同一个结果。
+
+扫描 Micro QR 时，在「设置」中选择「双引擎」和「仅 QR」并应用。此时 ML Kit 扫普通 QR，ZXing-C++ 扫 Micro QR，两种码都使用上述框内判断和稳定识别流程。
 
 默认需要至少 3 个成功帧一致，且观察至少 200 ms；还会考虑短暂漏识别和证据时效。参数可调整，见 [调优实操手册](scan-tuning.md)。多帧一致不能保证内容一定正确，仍应核对标签。
 

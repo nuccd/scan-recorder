@@ -7,7 +7,6 @@ import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import io.github.g00fy2.quickie.ScanDecoderMode
-import io.github.g00fy2.quickie.ScanFormatScope
 import io.github.g00fy2.quickie.ScanFrameDiagnostics
 import io.github.g00fy2.quickie.ScanFrameStatus
 import io.github.g00fy2.quickie.ScanTuningOptions
@@ -72,8 +71,7 @@ internal class TuningDiagnosticsUi(
   }
 
   private fun nativeMeasurement(frame: ScanFrameDiagnostics): String = when {
-    options.decoderMode == ScanDecoderMode.ML_KIT || options.formatScope == ScanFormatScope.QR ->
-      activity.getString(R.string.tuning_engine_disabled)
+    options.decoderMode == ScanDecoderMode.ML_KIT -> activity.getString(R.string.tuning_engine_disabled)
     !frame.nativeAvailable -> activity.getString(R.string.tuning_engine_unavailable)
     else -> activity.getString(R.string.tuning_engine_measurement, frame.nativeMillis, frame.nativeCount)
   }

@@ -4,19 +4,19 @@ import android.graphics.Bitmap
 import android.graphics.Rect
 import android.graphics.RectF
 import androidx.camera.core.ImageProxy
-import com.google.mlkit.vision.barcode.common.Barcode
 import zxingcpp.BarcodeReader
 import java.nio.ByteBuffer
 
-/** Supplements ML Kit with linear-only native decoding, retaining every valid result and its bounds. */
-internal class LinearBarcodeDecoder(formats: IntArray, private val tuning: ScanTuningOptions = ScanTuningOptions()) {
-  private val linearFormats = LINEAR_FORMATS.filterKeys { Barcode.FORMAT_ALL_FORMATS in formats || it in formats }
-    .values.toSet()
+/** Decodes the selected native formats, retaining every valid result and its bounds. */
+internal class NativeBarcodeDecoder(
+  private val formats: Set<BarcodeReader.Format>,
+  private val tuning: ScanTuningOptions = ScanTuningOptions()
+) {
   private var invertedLuminance: ByteBuffer? = null
   private val reader by lazy {
     BarcodeReader(
       BarcodeReader.Options(
-        formats = linearFormats,
+        formats = formats,
         tryHarder = tuning.nativeTryHarder,
         tryRotate = tuning.nativeTryRotate,
         tryInvert = tuning.nativeTryInvert,
@@ -28,21 +28,21 @@ internal class LinearBarcodeDecoder(formats: IntArray, private val tuning: ScanT
   }
 
   fun decode(image: ImageProxy): List<DecodedBarcode> {
-    if (linearFormats.isEmpty()) return emptyList()
+    if (formats.isEmpty()) return emptyList()
     val luminance = image.planes.first()
     check(luminance.pixelStride == 1 && luminance.buffer.isDirect) { "A direct, contiguous Y plane is required" }
     // JNI reports points relative to the rotated crop. Decode the complete buffer to match ML Kit coordinates.
     val found = convert(reader.read(FullImageProxy(image)))
     return found.ifEmpty {
       if (!tuning.nativeInvertFallback) return@ifEmpty emptyList()
-      // Native tryInvert does not cover every linear symbology; retry once without changing the source plane.
+      // Retry failed reads on a separate luminance buffer without changing the source plane.
       val inverse = invert(image.width, image.height, luminance)
       convert(reader.read(FullImageProxy(image, inverse)))
     }
   }
 
   internal fun decode(bitmap: Bitmap, rotation: Int = 0): List<DecodedBarcode> {
-    if (linearFormats.isEmpty()) return emptyList()
+    if (formats.isEmpty()) return emptyList()
     val found = convert(reader.read(bitmap, rotation = rotation))
     return found.ifEmpty { if (tuning.nativeInvertFallback) decodeInverted(bitmap, rotation) else emptyList() }
   }
@@ -102,19 +102,5 @@ internal class LinearBarcodeDecoder(formats: IntArray, private val tuning: ScanT
     override fun getRowStride(): Int = stride
 
     override fun getPixelStride(): Int = 1
-  }
-
-  private companion object {
-    val LINEAR_FORMATS = mapOf(
-      Barcode.FORMAT_CODABAR to BarcodeReader.Format.CODABAR,
-      Barcode.FORMAT_CODE_39 to BarcodeReader.Format.CODE_39,
-      Barcode.FORMAT_CODE_93 to BarcodeReader.Format.CODE_93,
-      Barcode.FORMAT_CODE_128 to BarcodeReader.Format.CODE_128,
-      Barcode.FORMAT_EAN_13 to BarcodeReader.Format.EAN_13,
-      Barcode.FORMAT_EAN_8 to BarcodeReader.Format.EAN_8,
-      Barcode.FORMAT_ITF to BarcodeReader.Format.ITF,
-      Barcode.FORMAT_UPC_A to BarcodeReader.Format.UPC_A,
-      Barcode.FORMAT_UPC_E to BarcodeReader.Format.UPC_E
-    )
   }
 }

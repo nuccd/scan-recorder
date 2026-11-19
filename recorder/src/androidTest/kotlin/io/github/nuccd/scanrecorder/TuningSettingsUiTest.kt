@@ -97,6 +97,19 @@ internal class TuningSettingsUiTest {
   }
 
   @Test
+  fun combinedQrScopeAdvertisesMicroQrAndCanBeApplied() {
+    launch()
+    onMain {
+      val formats = activity.findViewById<Spinner>(R.id.tuning_formats)
+      assertTrue(formats.adapter.getItem(ScanFormatScope.QR.ordinal).toString().contains("Micro QR"))
+      select(R.id.tuning_formats, ScanFormatScope.QR.ordinal)
+      click(R.id.tuning_apply)
+      assertTrue(activity.isFinishing)
+    }
+    assertEquals(ScanTuningOptions(formatScope = ScanFormatScope.QR), store.load())
+  }
+
+  @Test
   fun restoringDefaultsOnlyChangesTheDraftAndCancellationPreservesTheSavedOptions() {
     val before = ScanTuningOptions(minimumFrames = 5, nativeTryDownscale = true, defaultZoomRatio = 4.5f)
     store.save(before)

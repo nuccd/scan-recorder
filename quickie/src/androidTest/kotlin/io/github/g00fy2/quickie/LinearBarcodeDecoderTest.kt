@@ -15,6 +15,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import zxingcpp.BarcodeReader
 import java.lang.reflect.Proxy
 import java.nio.ByteBuffer
 
@@ -119,11 +120,11 @@ internal class LinearBarcodeDecoderTest {
   }
 
   @Test
-  fun matrixOnlyFormatsDoNotInvokeTheLinearEngine() {
+  fun theNativeDecoderDoesNotScanForUnrequestedFormats() {
     val bitmap = fixture()
     try {
-      assertTrue(LinearBarcodeDecoder(intArrayOf(Barcode.FORMAT_QR_CODE)).decode(bitmap).isEmpty())
-      assertTrue(LinearBarcodeDecoder(intArrayOf(Barcode.FORMAT_EAN_13)).decode(bitmap).isEmpty())
+      assertTrue(NativeBarcodeDecoder(emptySet()).decode(bitmap).isEmpty())
+      assertTrue(NativeBarcodeDecoder(setOf(BarcodeReader.Format.EAN_13)).decode(bitmap).isEmpty())
     } finally {
       bitmap.recycle()
     }
@@ -142,18 +143,20 @@ internal class LinearBarcodeDecoderTest {
     val normal = fixture()
     val inverted = fixture(inverted = true)
     try {
-      val formats = intArrayOf(Barcode.FORMAT_CODE_128)
-      assertEquals(FIRST_TEXT, LinearBarcodeDecoder(formats, options).decode(normal).single().rawValue)
-      assertTrue(LinearBarcodeDecoder(formats, options).decode(inverted).isEmpty())
+      val formats = setOf(BarcodeReader.Format.CODE_128)
+      assertEquals(FIRST_TEXT, NativeBarcodeDecoder(formats, options).decode(normal).single().rawValue)
+      assertTrue(NativeBarcodeDecoder(formats, options).decode(inverted).isEmpty())
       val fallback = options.copy(nativeInvertFallback = true)
-      assertEquals(FIRST_TEXT, LinearBarcodeDecoder(formats, fallback).decode(inverted).single().rawValue)
+      assertEquals(FIRST_TEXT, NativeBarcodeDecoder(formats, fallback).decode(inverted).single().rawValue)
     } finally {
       normal.recycle()
       inverted.recycle()
     }
   }
 
-  private fun decoder(): LinearBarcodeDecoder = LinearBarcodeDecoder(intArrayOf(Barcode.FORMAT_ALL_FORMATS))
+  private fun decoder(): NativeBarcodeDecoder = NativeBarcodeDecoder(
+    ScanDecodePlan(ScanTuningOptions(), intArrayOf(Barcode.FORMAT_ALL_FORMATS)).nativeFormats
+  )
 
   private fun fixture(inverted: Boolean = false, twoCodes: Boolean = false, tilt: Float = 0f): Bitmap {
     val bitmap = Bitmap.createBitmap(900, 440, Bitmap.Config.ARGB_8888)

@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import zxingcpp.BarcodeReader
 
 internal class ScanTuningOptionsTest {
   @Test
@@ -22,15 +23,13 @@ internal class ScanTuningOptionsTest {
   }
 
   @Test
-  fun `engine choices route only to the requested decoders`() {
+  fun `all formats keep native decoding limited to linear codes`() {
     for (mode in ScanDecoderMode.entries) {
       val plan = ScanDecodePlan(ScanTuningOptions(decoderMode = mode), intArrayOf(Barcode.FORMAT_ALL_FORMATS))
       assertEquals(mode != ScanDecoderMode.NATIVE, plan.useMlKit)
-      assertEquals(mode != ScanDecoderMode.ML_KIT, plan.useNative)
+      assertEquals(if (mode == ScanDecoderMode.ML_KIT) 0 else 9, plan.nativeFormats.size)
+      assertFalse(BarcodeReader.Format.MICRO_QR_CODE in plan.nativeFormats)
     }
-    val legacy = ScanDecodePlan(ScanTuningOptions(), intArrayOf(Barcode.FORMAT_QR_CODE), embedded = false)
-    assertTrue(legacy.useMlKit)
-    assertFalse(legacy.useNative)
   }
 
   @Test
@@ -39,25 +38,34 @@ internal class ScanTuningOptionsTest {
       ScanTuningOptions(formatScope = ScanFormatScope.LINEAR),
       intArrayOf(Barcode.FORMAT_ALL_FORMATS)
     )
-    assertEquals(9, all.formats.size)
-    assertFalse(Barcode.FORMAT_QR_CODE in all.formats)
-    assertFalse(Barcode.FORMAT_DATA_MATRIX in all.formats)
+    assertEquals(9, all.mlKitFormats.size)
+    assertFalse(Barcode.FORMAT_QR_CODE in all.mlKitFormats)
+    assertFalse(Barcode.FORMAT_DATA_MATRIX in all.mlKitFormats)
+    assertFalse(BarcodeReader.Format.MICRO_QR_CODE in all.nativeFormats)
     val restricted = ScanDecodePlan(
       ScanTuningOptions(formatScope = ScanFormatScope.LINEAR),
       intArrayOf(Barcode.FORMAT_CODE_128)
     )
-    assertEquals(listOf(Barcode.FORMAT_CODE_128), restricted.formats.toList())
+    assertEquals(listOf(Barcode.FORMAT_CODE_128), restricted.mlKitFormats.toList())
+    assertEquals(setOf(BarcodeReader.Format.CODE_128), restricted.nativeFormats)
   }
 
   @Test
-  fun `QR scope cannot accidentally invoke the native linear engine`() {
-    val plan = ScanDecodePlan(
-      ScanTuningOptions(formatScope = ScanFormatScope.QR),
-      intArrayOf(Barcode.FORMAT_ALL_FORMATS)
-    )
-    assertEquals(listOf(Barcode.FORMAT_QR_CODE), plan.formats.toList())
+  fun `embedded dual engine QR scope routes standard QR to ML Kit and Micro QR to native decoding`() {
+    val options = ScanTuningOptions(formatScope = ScanFormatScope.QR)
+    val formats = intArrayOf(Barcode.FORMAT_ALL_FORMATS)
+    val plan = ScanDecodePlan(options, formats)
+    assertEquals(listOf(Barcode.FORMAT_QR_CODE), plan.mlKitFormats.toList())
     assertTrue(plan.useMlKit)
-    assertFalse(plan.useNative)
+    assertEquals(setOf(BarcodeReader.Format.MICRO_QR_CODE), plan.nativeFormats)
+    assertFalse(ScanDecodePlan(options.copy(decoderMode = ScanDecoderMode.ML_KIT), formats).useNative)
+    val legacy = ScanDecodePlan(options, formats, embedded = false)
+    assertTrue(legacy.useMlKit)
+    assertFalse(legacy.useNative)
+  }
+
+  @Test
+  fun `native only mode cannot select QR scope`() {
     assertThrows(IllegalArgumentException::class.java) {
       ScanTuningOptions(decoderMode = ScanDecoderMode.NATIVE, formatScope = ScanFormatScope.QR)
     }
